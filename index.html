@@ -312,8 +312,9 @@ dialog{max-height:calc(100dvh - 40px);overflow-y:auto}
 @media(min-width:901px){
   .overview-layout{align-items:stretch}
   .overview-layout>.overview-betting{align-self:stretch}
-  .overview-layout>.overview-betting>.card{height:100%;display:flex;flex-direction:column}
-  .overview-layout>.overview-betting>.card>div:not(.section-title){flex:1;display:flex;flex-direction:column;justify-content:center;min-height:0}
+  /* Il box si allunga quanto la classifica, ma i mercati mantengono
+     altezza e spaziatura naturali: lo spazio aggiuntivo resta in basso. */
+  .overview-layout>.overview-betting>.card{height:100%;display:block}
 }
 
 @media(max-width:900px){
@@ -329,6 +330,37 @@ dialog{max-height:calc(100dvh - 40px);overflow-y:auto}
 .ranking-recent .ranking-result{display:flex;align-items:center;justify-content:center;min-width:0;white-space:nowrap;text-align:center;padding:6px 2px;font-size:clamp(10px,1.9vw,12px);}
 .ranking-recent .mini{grid-column:1/-1;}
 @media(max-width:430px){.ranking-recent{gap:4px}.ranking-recent .ranking-result{padding:6px 1px;font-size:10px}}
+
+/* Hall of Fame — componenti coerenti con le schede già presenti nel sito */
+.hof-group{margin-bottom:20px}
+.hof-group .section-title{margin-bottom:16px}
+.hof-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.hof-grid.hof-heroes{grid-template-columns:repeat(2,minmax(0,1fr))}
+.hof-grid.hof-specials{grid-template-columns:repeat(4,minmax(0,1fr))}
+.hof-record{background:linear-gradient(150deg,#141b24,#10151c);border:1px solid var(--border);border-radius:14px;padding:18px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.hof-record-head{display:flex;align-items:center;gap:10px;min-height:38px}
+.hof-record .award-icon{margin:0;flex:0 0 39px;width:39px;height:39px;border-radius:10px;background:#223027;color:var(--lime)}
+.hof-record .award-icon .ui-icon{width:22px;height:22px}
+.hof-record-title{font-size:13px;font-weight:850;letter-spacing:.055em;color:var(--ink)}
+.hof-record-name{font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:750;line-height:1.25;overflow-wrap:anywhere}
+.hof-record-value{font-family:'Space Grotesk',sans-serif;font-size:24px;letter-spacing:-.6px;font-weight:750;color:var(--lime);font-variant-numeric:tabular-nums}
+.hof-record-desc{font-size:12px;color:var(--muted);line-height:1.55;margin-top:auto}
+.hof-record.hero{padding:20px;gap:9px}
+.hof-record.hero .hof-record-name{font-size:23px}
+.hof-record.hero .hof-record-value{font-size:30px}
+.hof-record.fire{border-color:#81503a}
+.hof-record.fire .hof-record-title,.hof-record.fire .hof-record-value,.hof-record.fire .award-icon{color:#ff8553}
+.hof-record.fire .award-icon{background:#30221f}
+.hof-record.ice{border-color:#385f75}
+.hof-record.ice .hof-record-title,.hof-record.ice .hof-record-value,.hof-record.ice .award-icon{color:#85dfff}
+.hof-record.ice .award-icon{background:#192c39}
+.hof-record.gold .award-icon{color:#ffcc69;background:#332b21}
+.hof-record.negative .award-icon{color:#ff8397;background:#34232a}
+.hof-record.purple .award-icon{color:#c9a4ff;background:#2d253b}
+.hof-record.cyan .award-icon{color:#83e3df;background:#1a3033}
+.hof-record.orange .award-icon{color:#ffa768;background:#37281f}
+@media(max-width:1100px){.hof-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hof-grid.hof-specials{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.hof-grid,.hof-grid.hof-heroes,.hof-grid.hof-specials{grid-template-columns:1fr}.hof-record{padding:16px}.hof-record.hero{padding:18px}}
 </style><script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head><body><div id="mobileMenuBackdrop" class="mobile-menu-backdrop" aria-hidden="true"></div><button id="mobileMenuClose" class="mobile-menu-close" type="button" aria-label="Chiudi menu"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button><div class="shell"><aside class="sidebar"><div><div class="brand">FANTA<b>SCHEDINA</b></div><div class="tiny brand-sub">The betting league / 2026</div></div><button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-label="Apri menu" aria-controls="nav" aria-expanded="false"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><nav class="nav" id="nav" aria-label="Sezioni FantaSchedina"><button data-tab="overview" class="active" type="button"><span class="nav-symbol"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg></span><span class="nav-label">Panoramica</span></button><button type="button" data-tab="players"><span class="nav-symbol"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nav-label">Giocatori</span></button><button type="button" data-tab="bets"><span class="nav-symbol"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg></span><span class="nav-label">Pronostici</span></button><button type="button" data-tab="live"><span class="nav-symbol"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 16 4-5 3 2 5-7"/></svg></span><span class="nav-label">Schedina LIVE</span></button><button type="button" data-tab="weeks"><span class="nav-symbol"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><span class="nav-label">Giornate</span></button><button type="button" data-tab="sim"><span class="nav-symbol"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 6h8M8 11h2M14 11h2M8 15h2M14 15h2M8 19h2M14 19h2"/></svg></span><span class="nav-label">Simulatore</span></button><button type="button" data-tab="awards"><span class="nav-symbol"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="m8.2 13-1 9 4.8-3 4.8 3-1-9"/></svg></span><span class="nav-label">Hall of Fame</span></button><button type="button" data-tab="ai"><span class="nav-symbol"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3ZM20 18v4M18 20h4M4 2v4M2 4h4"/></svg></span><span class="nav-label">Fanta AI</span></button><button type="button" data-tab="admin"><span class="nav-symbol"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8"/><path d="m19.4 15 .1 1.3-2 2-1.3-.1-1.5.8-.7 1.3h-4l-.7-1.3-1.5-.8-1.3.1-2-2 .1-1.3-.8-1.5-1.3-.7v-3.6l1.3-.7.8-1.5-.1-1.3 2-2 1.3.1 1.5-.8.7-1.3h4l.7 1.3 1.5.8 1.3-.1 2 2-.1 1.3.8 1.5 1.3.7v3.6l-1.3.7-.8 1.5Z"/></svg></span><span class="nav-label">Admin</span></button></nav><div class="sidebar-bottom">● <span style="color:var(--lime)">DATABASE LIVE</span><br>Pronostici e risultati aggiornati dall’area Admin.</div></aside><main class="main"><header class="top"><div><div class="eyebrow">● Season dashboard / 2026</div><h1 class="h1" id="pageTitle">La lega dei pronostici.</h1></div><div class="actions"><span class="pill" id="connectionStatus">CONNESSIONE...</span></div></header><p class="subtitle" id="pageDesc">Le statistiche non mentono. Purtroppo.</p><div class="notice hide" id="systemNotice" style="margin-bottom:18px" role="alert"></div><div id="content"></div><div class="footer">FANTASCHEDINA © 2026 · Storico iniziale importato da Tracker FantaSchedina.xlsx · ROI simulato con 10 € per pronostico e unità costante · Nessun consiglio di scommessa.</div></main></div><nav id="mobileBottomNav" class="mobile-bottom-nav" aria-label="Navigazione principale mobile"><button type="button" data-mobile-tab="overview" aria-label="Panoramica"><span class="mobile-nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></span>Panoramica</button><button type="button" data-mobile-tab="players" aria-label="Giocatori"><span class="mobile-nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Giocatori</button><button type="button" data-mobile-tab="live" aria-label="Schedina LIVE"><span class="mobile-nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 16 4-5 3 2 5-7"/></svg></span>Schedina</button><button type="button" data-mobile-tab="weeks" aria-label="Giornate"><span class="mobile-nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>Giornate</button><button type="button" data-mobile-more="true" aria-label="Apri tutte le sezioni"><span class="mobile-nav-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></span>Altro</button></nav>
 
 
@@ -362,6 +394,12 @@ const ICON_PATHS={
   'crosshair': `<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>`,
   'rocket': `<path d="M5 16c-2-2-2-5-2-5l5-1c3-5 7-7 13-7 0 6-2 10-7 13l-1 5s-3 0-5-2"/><path d="m9 15-3 3M6 18l-3 3"/><circle cx="15" cy="9" r="2"/>`,
   'gem': `<path d="M6 3h12l4 6-10 12L2 9zM2 9h20M6 3l3 6 3 12 3-12 3-6"/>`,
+  'trending-up': `<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>`,
+  'bomb': `<circle cx="11" cy="14" r="7"/><path d="M15 8l3-3 2 2M18 5l1-2M21 7l2-1"/>`,
+  'skull': `<path d="M12 2a8 8 0 0 0-8 8c0 3 1.5 5 3 6v4h10v-4c1.5-1 3-3 3-6a8 8 0 0 0-8-8Z"/><circle cx="9" cy="11" r="1"/><circle cx="15" cy="11" r="1"/><path d="M10 16v4m4-4v4"/>`,
+  'dice': `<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 8h.01M16 8h.01M12 12h.01M8 16h.01M16 16h.01" stroke-width="3"/>`,
+  'shield': `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>`,
+  'calendar-x': `<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 2v4M16 2v4M3 10h18M9 14l6 5m0-5-6 5"/>`,
   'info': `<circle cx="12" cy="12" r="10"/><path d="M12 11v6M12 7h.01"/>`
 };
 function uiIcon(name,cls=''){
@@ -375,6 +413,16 @@ const SEED={"bets": [{"id": 1, "week": 5, "player": "Andrea", "match": "Bari–C
  if(n<=-3)return `<span class="streak-ice" aria-label="Ice: ${Math.abs(n)} sconfitte consecutive">${uiIcon('snowflake')}</span> ${n}`;
  return n>0?`+${n}`:String(n);
 }
+// Classifica a fisarmonica: una sola scheda giocatore aperta per gruppo.
+document.addEventListener('toggle',event=>{
+ const item=event.target;
+ if(!item.matches?.('details.ranking-card')||!item.open)return;
+ const group=item.closest('.ranking-list');
+ if(!group)return;
+ group.querySelectorAll('details.ranking-card[open]').forEach(other=>{
+  if(other!==item)other.open=false;
+ });
+},true);
 function leaderboard(data=stats(),compact=false){
  if(!data.length)return '<div class="empty">Nessun dato</div>';
  return `<div class="ranking-list" aria-label="Classifica giocatori">${data.map((x,i)=>{
@@ -416,7 +464,68 @@ function trendSvg(){const w=700,h=218,pad=26,weeks=allWeeks().filter(w=>db.bets.
  const cards=[...selected.b].sort((a,b)=>a.id-b.id).map(b=>`<article class="live-pick ${['V','P','N'].includes(b.result)?b.result:'A'}"><div class="live-icon" aria-hidden="true">${uiIcon(b.result==='V'?'check':b.result==='P'?'close':b.result==='N'?'undo':'clock')}</div><div><div class="live-match">${esc(b.match)}</div><div class="live-tip">${esc(b.pick)}</div><div class="mini" style="margin-top:7px">${esc(b.player)}${b.date?' · '+esc(b.date):''}</div></div><div class="live-right"><strong>${fmt(b.odds)}</strong>${badge(b.result)}</div></article>`).join('');
  return `${top}<div class="grid metrics">${metric('QUOTA TOTALE',fmt(effectiveOdds),'Quota combinata delle selezioni')}${metric('PUNTATA',money(selected.stake),'Importo registrato per la giornata')}${metric('VINCITA POTENZIALE',money(potential),'Lorda, solo se tutte le selezioni utili vincono')}${metric('STATO',pending?`${settled.length}/${selected.b.length}`:statusText,pending?'Selezioni già definite':'Schedina conclusa')}</div><section class="card"><div class="section-title"><h2>🎟️ La schedina</h2><span class="pill">${selected.b.length} SELEZIONI</span></div>${statusCount}<div class="live-list">${cards}</div></section>${rounds.length>1?`<div style="margin-top:18px">${btn('Vedi archivio giornate',"navigate('weeks')")}</div>`:''}`;
 }
-function weeksPage(){const ww=allWeeks().map(weekData).reverse();return `<div class="grid two">${ww.map(x=>`<div class="card"><div class="row between"><span class="week-pill">GIORNATA ${x.w}</span>${x.b.length?badge(x.complete?(x.won?'V':'P'):'A'):badge(x.meta.legacyResult||'A')}</div><div class="grid two" style="margin-top:18px">${metric('Quota multipla',x.b.length?fmt(x.total):x.meta.legacyOdds?fmt(x.meta.legacyOdds):'—','')}${metric('Successi',x.b.length?x.valid.filter(b=>b.result==='V').length+'/'+x.b.length:x.meta.legacyHits||'—','')}</div><div class="statline"><span>Pagante</span><b>${esc(x.payer)}</b></div><div class="statline"><span>Puntata (€)</span><b>${fmt(x.stake)}</b></div><div class="row between" style="margin-top:16px"><button class="btn" onclick="simWeek=${x.w};navigate('sim')">Simula →</button></div></div>`).join('')}</div>`}function simPage(){let w=allWeeks().filter(x=>db.bets.some(b=>b.week===x));if(!w.includes(simWeek))simWeek=w.at(-1);let all=db.bets.filter(x=>+x.week===+simWeek),arr=all.filter(x=>!simExcluded.includes(x.id)&&x.odds>=minOdd),total=arr.reduce((s,x)=>s*(x.result==='N'?1:x.odds),1),lost=arr.some(x=>x.result==='P'),pending=arr.some(x=>x.result==='A'),status=!arr.length?'NESSUNA SELEZIONE':lost?'PERSA':pending?'IN CORSO':'VINTA';return `<div class="grid split">${section('Il laboratorio WHAT IF',`<div class="filters"><select class="select" id="simWeek">${w.map(x=>`<option value="${x}" ${x===simWeek?'selected':''}>Giornata ${x}</option>`).join('')}</select><select id="minOdd" class="select"><option value="1" ${minOdd===1?'selected':''}>Tutte le quote</option><option value="1.5" ${minOdd===1.5?'selected':''}>Quota ≥ 1,50</option><option value="1.7" ${minOdd===1.7?'selected':''}>Quota ≥ 1,70</option><option value="2" ${minOdd===2?'selected':''}>Quota ≥ 2,00</option></select></div><p class="mini">Clicca su un giocatore per includere o escludere la sua selezione.</p>${all.map(x=>`<div class="pick-row" style="opacity:${simExcluded.includes(x.id)||x.odds<minOdd?.35:1}"><div class="row"><input type="checkbox" aria-label="Includi ${esc(x.player)}" onchange="toggleSim(${x.id})" ${simExcluded.includes(x.id)?'':'checked'}><div><strong>${esc(x.player)}</strong><small>${esc(x.match)} · ${esc(x.pick)}</small></div></div><div class="row">${badge(x.result)}<strong>${fmt(x.odds)}</strong></div></div>`).join('')||'<div class="empty">Nessun pronostico</div>'}`)}${section('Scenario alternativo',`<div class="grid two">${metric('Quota totale',arr.length?fmt(total):'—',arr.length+' selezioni incluse')}${metric('Esito storico',status,'Calcolato sulle selezioni rimaste')}${metric('Vincita con €5',status==='VINTA'?money(5*total):'€ 0,00','Vincita lorda ipotetica')}${metric('Pronostici corretti',arr.filter(x=>x.result==='V').length+'/'+arr.length,'Con esiti noti')}</div>`)}</div>`}function awardsPage(){let st=stats(),resolved=st.filter(x=>x.resolved),high=[...db.bets].filter(x=>x.result==='V').sort((a,b)=>b.odds-a.odds)[0],low=[...db.bets].filter(x=>x.result==='P').sort((a,b)=>b.odds-a.odds)[0],aggr=[...st].sort((a,b)=>b.avg-a.avg)[0],roi=[...resolved].sort((a,b)=>b.roi-a.roi)[0],loser=[...resolved].sort((a,b)=>a.roi-b.roi)[0],streak=[...resolved].sort((a,b)=>b.streak-a.streak)[0],cold=[...resolved].sort((a,b)=>a.streak-b.streak)[0];let awards=[['crown','Re Mida',roi?.p,'Miglior ROI teorico: '+fmt(roi?.roi||0,1)+'%'],['crosshair','Cecchino',resolved[0]?.p,'Hit rate '+fmt(resolved[0]?.rate||0,1)+'%'],['rocket','Quota Kamikaze',aggr?.p,'Quota media più alta: '+fmt(aggr?.avg||0)],['flame','On Fire',streak?.streak>=3?streak.p:'Da assegnare',streak?.streak>=3?'Serie attuale: '+streak.streak+' vittorie consecutive':'Si attiva da 3 vittorie consecutive'],['gem','Colpo grosso',high?.player||'Da assegnare',high?'Quota vinta '+fmt(high.odds)+' · '+high.match:'Nessun pronostico'],['snowflake','Ice Cold',cold?.streak<=-3?cold.p:'Da assegnare',cold?.streak<=-3?'Serie attuale: '+Math.abs(cold.streak)+' sconfitte consecutive':'Si attiva da 3 sconfitte consecutive']];return `<div class="grid three">${awards.map(a=>`<div class="award"><div class="award-icon">${uiIcon(a[0])}</div><div class="tiny">${a[1]}</div><strong>${esc(a[2]||'—')}</strong><div class="desc">${esc(a[3])}</div></div>`).join('')}</div>`}
+function weeksPage(){const ww=allWeeks().map(weekData).reverse();return `<div class="grid two">${ww.map(x=>`<div class="card"><div class="row between"><span class="week-pill">GIORNATA ${x.w}</span>${x.b.length?badge(x.complete?(x.won?'V':'P'):'A'):badge(x.meta.legacyResult||'A')}</div><div class="grid two" style="margin-top:18px">${metric('Quota multipla',x.b.length?fmt(x.total):x.meta.legacyOdds?fmt(x.meta.legacyOdds):'—','')}${metric('Successi',x.b.length?x.valid.filter(b=>b.result==='V').length+'/'+x.b.length:x.meta.legacyHits||'—','')}</div><div class="statline"><span>Pagante</span><b>${esc(x.payer)}</b></div><div class="statline"><span>Puntata (€)</span><b>${fmt(x.stake)}</b></div><div class="row between" style="margin-top:16px"><button class="btn" onclick="simWeek=${x.w};navigate('sim')">Simula →</button></div></div>`).join('')}</div>`}function simPage(){let w=allWeeks().filter(x=>db.bets.some(b=>b.week===x));if(!w.includes(simWeek))simWeek=w.at(-1);let all=db.bets.filter(x=>+x.week===+simWeek),arr=all.filter(x=>!simExcluded.includes(x.id)&&x.odds>=minOdd),total=arr.reduce((s,x)=>s*(x.result==='N'?1:x.odds),1),lost=arr.some(x=>x.result==='P'),pending=arr.some(x=>x.result==='A'),status=!arr.length?'NESSUNA SELEZIONE':lost?'PERSA':pending?'IN CORSO':'VINTA';return `<div class="grid split">${section('Il laboratorio WHAT IF',`<div class="filters"><select class="select" id="simWeek">${w.map(x=>`<option value="${x}" ${x===simWeek?'selected':''}>Giornata ${x}</option>`).join('')}</select><select id="minOdd" class="select"><option value="1" ${minOdd===1?'selected':''}>Tutte le quote</option><option value="1.5" ${minOdd===1.5?'selected':''}>Quota ≥ 1,50</option><option value="1.7" ${minOdd===1.7?'selected':''}>Quota ≥ 1,70</option><option value="2" ${minOdd===2?'selected':''}>Quota ≥ 2,00</option></select></div><p class="mini">Clicca su un giocatore per includere o escludere la sua selezione.</p>${all.map(x=>`<div class="pick-row" style="opacity:${simExcluded.includes(x.id)||x.odds<minOdd?.35:1}"><div class="row"><input type="checkbox" aria-label="Includi ${esc(x.player)}" onchange="toggleSim(${x.id})" ${simExcluded.includes(x.id)?'':'checked'}><div><strong>${esc(x.player)}</strong><small>${esc(x.match)} · ${esc(x.pick)}</small></div></div><div class="row">${badge(x.result)}<strong>${fmt(x.odds)}</strong></div></div>`).join('')||'<div class="empty">Nessun pronostico</div>'}`)}${section('Scenario alternativo',`<div class="grid two">${metric('Quota totale',arr.length?fmt(total):'—',arr.length+' selezioni incluse')}${metric('Esito storico',status,'Calcolato sulle selezioni rimaste')}${metric('Vincita con €5',status==='VINTA'?money(5*total):'€ 0,00','Vincita lorda ipotetica')}${metric('Pronostici corretti',arr.filter(x=>x.result==='V').length+'/'+arr.length,'Con esiti noti')}</div>`)}</div>`}function awardsPage(){
+ const all=orderedBets();
+ const settled=all.filter(x=>x.result==='V'||x.result==='P');
+ const ps=stats();
+ // Solo campioni con almeno cinque esiti conclusi per percentuali e medie.
+ const eligible=ps.filter(x=>x.resolved>=5);
+ const bestRate=[...eligible].sort((a,b)=>b.rate-a.rate||b.resolved-a.resolved)[0];
+ const bestRoi=[...eligible].sort((a,b)=>b.roi-a.roi||b.resolved-a.resolved)[0];
+ const avgEligible=[...eligible].sort((a,b)=>b.avg-a.avg);
+ const highestAvg=avgEligible[0];
+ const lowestAvg=avgEligible.at(-1);
+ const biggestWin=[...settled].filter(x=>x.result==='V').sort((a,b)=>b.odds-a.odds)[0];
+ const smallestLoss=[...settled].filter(x=>x.result==='P').sort((a,b)=>a.odds-b.odds)[0];
+ const mostLost=[...ps].filter(x=>x.l.length).sort((a,b)=>b.l.length-a.l.length||a.p.localeCompare(b.p))[0];
+ // Il record storico considera solo i pronostici decisi in ordine di giornata.
+ // Pronostici annullati e in attesa non alterano la lunghezza della serie.
+ const runs=[];
+ for(const p of players()){
+  const result=settled.filter(x=>x.player===p);
+  let previous=null,length=0;
+  for(const bet of result){
+   if(bet.result===previous)length++;
+   else{previous=bet.result;length=1;}
+   runs.push({player:p,result:bet.result,length});
+  }
+ }
+ const fire=[...runs].filter(x=>x.result==='V'&&x.length>=3).sort((a,b)=>b.length-a.length||a.player.localeCompare(b.player))[0];
+ const ice=[...runs].filter(x=>x.result==='P'&&x.length>=3).sort((a,b)=>b.length-a.length||a.player.localeCompare(b.player))[0];
+ // Consistency: deviazione standard delle percentuali di successo per giornata.
+ // Almeno 3 giornate con esiti e 5 pronostici decisi per evitare campioni troppo piccoli.
+ const consistent=ps.map(p=>{
+  const weeks=[...new Set(p.b.filter(b=>b.result==='V'||b.result==='P').map(b=>b.week))];
+  const rates=weeks.map(w=>{const b=p.b.filter(x=>x.week===w&&(x.result==='V'||x.result==='P'));return b.filter(x=>x.result==='V').length/b.length*100});
+  if(p.resolved<5||rates.length<3)return null;
+  const mean=rates.reduce((a,b)=>a+b,0)/rates.length;
+  const deviation=Math.sqrt(rates.reduce((a,b)=>a+(b-mean)**2,0)/rates.length);
+  return {p:p.p,deviation,mean,rounds:rates.length};
+ }).filter(Boolean).sort((a,b)=>a.deviation-b.deviation||b.mean-a.mean)[0];
+ // La peggior giornata è scelta soltanto fra quelle con tutti i risultati chiusi.
+ const worst=allWeeks().map(w=>{
+  const b=all.filter(x=>+x.week===+w);
+  if(!b.length||b.some(x=>x.result==='A'))return null;
+  const completed=b.filter(x=>x.result==='V'||x.result==='P');
+  if(!completed.length)return null;
+  return {w,won:completed.filter(x=>x.result==='V').length,total:completed.length};
+ }).filter(Boolean).sort((a,b)=>a.won/a.total-b.won/b.total||a.won-b.won||a.w-b.w)[0];
+ const card=({icon,title,name,value,desc,tone='',hero=false})=>`<article class="hof-record ${tone} ${hero?'hero':''}"><div class="hof-record-head"><span class="award-icon">${uiIcon(icon)}</span><span class="hof-record-title">${esc(title)}</span></div><div class="hof-record-name">${esc(name||'Da assegnare')}</div><div class="hof-record-value">${esc(value||'—')}</div><div class="hof-record-desc">${esc(desc)}</div></article>`;
+ const records=[
+  {icon:'crown',title:'THE GOAT',name:bestRate?.p,value:bestRate?fmt(bestRate.rate,1)+'%':null,desc:'Miglior hit rate · almeno 5 pronostici conclusi',tone:'gold'},
+  {icon:'trending-up',title:'PROFIT MACHINE',name:bestRoi?.p,value:bestRoi?(bestRoi.roi>=0?'+':'')+fmt(bestRoi.roi,1)+'%':null,desc:'ROI teorico più alto · almeno 5 pronostici conclusi'},
+  {icon:'gem',title:'BIG SHOT',name:biggestWin?.player,value:biggestWin?fmt(biggestWin.odds):null,desc:'Pronostico vinto alla quota più alta',tone:'purple'},
+  {icon:'bomb',title:'BAD BEAT',name:smallestLoss?.player,value:smallestLoss?fmt(smallestLoss.odds):null,desc:'Pronostico perso alla quota più bassa',tone:'negative'},
+  {icon:'crosshair',title:'MR. CONSISTENCY',name:consistent?.p,value:consistent?'±'+fmt(consistent.deviation,1)+' pp':null,desc:'Minor variabilità dell’hit rate per giornata · almeno 3 giornate e 5 pronostici',tone:'cyan'}
+ ];
+ const special=[
+  {icon:'skull',title:'BLACK HOLE',name:mostLost?.p,value:mostLost?String(mostLost.l.length):null,desc:'Più pronostici persi in totale',tone:'negative'},
+  {icon:'dice',title:'HIGH ROLLER',name:highestAvg?.p,value:highestAvg?fmt(highestAvg.avg):null,desc:'Quota media più alta · almeno 5 pronostici conclusi',tone:'purple'},
+  {icon:'shield',title:'SAFE PLAYER',name:lowestAvg?.p,value:lowestAvg?fmt(lowestAvg.avg):null,desc:'Quota media più bassa · almeno 5 pronostici conclusi',tone:'cyan'},
+  {icon:'calendar-x',title:'WORST ROUND',name:worst?'Giornata '+worst.w:null,value:worst?worst.won+'/'+worst.total:null,desc:'Minor percentuale di pronostici indovinati · giornate concluse',tone:'orange'}
+ ];
+ return `<section class="hof-group"><div class="section-title"><h2>Le serie</h2></div><div class="hof-grid hof-heroes">${card({icon:'flame',title:'ON FIRE',name:fire?.player,value:fire?'+'+fire.length:null,desc:'Record storico di vittorie consecutive · da 3 in su',tone:'fire',hero:true})}${card({icon:'snowflake',title:'ON ICE',name:ice?.player,value:ice?'−'+ice.length:null,desc:'Record storico di pronostici persi consecutivi · da 3 in su',tone:'ice',hero:true})}</div></section><section class="hof-group"><div class="section-title"><h2>Record individuali</h2></div><div class="hof-grid">${records.map(card).join('')}</div></section><section class="hof-group"><div class="section-title"><h2>Statistiche speciali</h2></div><div class="hof-grid hof-specials">${special.map(card).join('')}</div></section>`;
+}
 // Renderer Markdown minimale: escapa sempre HTML e non consente link o markup arbitrario.
 function aiMarkdown(source){
  const inline=t=>{
