@@ -31,25 +31,113 @@ async function quota(deviceHash, reserve = false, endpoint = '') {
   }
   return value;
 }
+async function finishReservation(deviceHash, reservationId, confirmed) {
+  if (!reservationId) return;
+  const response = await fetch(SUPABASE + '/rest/v1/rpc/fantaschedina_oracle_finalize', {
+    method:'POST', headers:headers({'Content-Type':'application/json'}),
+    body:JSON.stringify({p_device_hash:deviceHash,p_call_id:reservationId,p_confirm:!!confirmed}),
+    signal:AbortSignal.timeout(9000)
+  });
+  if (!response.ok) {
+    const err=await response.json().catch(()=>null);
+    console.error('Oracolo finalize:',response.status,err?.code||err?.message||'unknown');
+    throw new Error('Impossibile aggiornare il contatore API-Football.');
+  }
+}
 function normalize(s) {
   return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 function cleanTeam(s, left = false) {
   let v = String(s || '').replace(/[“”"'()]/g, ' ').trim();
   if (left) v = v.replace(/^(?:(?:analizza|confronta|considera|valuta|tra|fra|sulla|sulle|su|la|le|il|gli|per|partita|partite|match|incontro|vorrei|voglio|scegli|dimmi|quota|quote|di|del|della|dei|delle|mi|puoi|trovami|una|un|e)\s+)+/gi, '');
-  else v = v.replace(/\s+(?:per|cerco|voglio|vorrei|con|quota|quote|soprattutto|sui|sugli|e|dove|quale|quali|scegli|analizza|dammi|consigliami|tra|fra)\b.*$/i, '');
+  else v = v.replace(/[.!?;].*$/s, '').replace(/\s+(?:per|cerco|voglio|vorrei|con|quota|quote|soprattutto|sui|sugli|e|dove|quale|quali|scegli|analizza|dammi|consigliami|tra|fra|over|under|gol|goal|corner|cartellini|calci|tiri|domani|oggi)\b.*$/i, '');
   return v.trim().slice(0, 60);
+}
+// Natural-language fixture identification. Users should not need to type a hyphen.
+// Longer multi-word team names are tested before shorter aliases.
+const TEAM_ALIASES = [
+  ['repubblica d irlanda','Republic of Ireland'], ['irlanda del nord','Northern Ireland'],
+  ['irlanda','Republic of Ireland'], ['eire','Republic of Ireland'],
+  ['bosnia erzegovina','Bosnia and Herzegovina'], ['bosnia','Bosnia and Herzegovina'],
+  ['repubblica ceca','Czech Republic'], ['cechia','Czech Republic'],
+  ['macedonia del nord','North Macedonia'], ['stati uniti','USA'], ['usa','USA'],
+  ['inghilterra','England'], ['scozia','Scotland'], ['galles','Wales'],
+  ['austria','Austria'], ['italia','Italy'], ['francia','France'], ['germania','Germany'],
+  ['spagna','Spain'], ['portogallo','Portugal'], ['belgio','Belgium'],
+  ['olanda','Netherlands'], ['paesi bassi','Netherlands'], ['svizzera','Switzerland'],
+  ['croazia','Croatia'], ['serbia','Serbia'], ['slovenia','Slovenia'],
+  ['slovacchia','Slovakia'], ['ucraina','Ukraine'], ['polonia','Poland'],
+  ['romania','Romania'], ['ungheria','Hungary'], ['grecia','Greece'],
+  ['turchia','Turkey'], ['turkye','Turkey'], ['norvegia','Norway'],
+  ['svezia','Sweden'], ['finlandia','Finland'], ['dan imarca','Denmark'],
+  ['danimarca','Denmark'], ['islanda','Iceland'], ['albania','Albania'],
+  ['montenegro','Montenegro'], ['kosovo','Kosovo'], ['georgia','Georgia'],
+  ['armenia','Armenia'], ['azerbaigian','Azerbaijan'], ['israele','Israel'],
+  ['marocco','Morocco'], ['egitto','Egypt'], ['senegal','Senegal'],
+  ['nigeria','Nigeria'], ['camerun','Cameroon'], ['ghana','Ghana'],
+  ['brasile','Brazil'], ['argentina','Argentina'], ['uruguay','Uruguay'],
+  ['colombia','Colombia'], ['ecuador','Ecuador'], ['cile','Chile'],
+  ['messico','Mexico'], ['canada','Canada'], ['giappone','Japan'],
+  ['corea del sud','South Korea'], ['australia','Australia'],
+  ['real madrid','Real Madrid'], ['atletico madrid','Atletico Madrid'],
+  ['manchester united','Manchester United'], ['manchester city','Manchester City'],
+  ['bayern monaco','Bayern Munich'], ['borussia dortmund','Borussia Dortmund'],
+  ['paris saint germain','Paris Saint Germain'], ['psg','Paris Saint Germain'],
+  ['inter milano','Inter'], ['inter','Inter'], ['milan','AC Milan'],
+  ['napoli','Napoli'], ['roma','AS Roma'], ['lazio','Lazio'],
+  ['juventus','Juventus'], ['atalanta','Atalanta'], ['fiorentina','Fiorentina'],
+  ['bologna','Bologna'], ['torino','Torino'], ['udinese','Udinese'],
+  ['genoa','Genoa'], ['como','Como'], ['parma','Parma'],
+  ['arsenal','Arsenal'], ['chelsea','Chelsea'], ['liverpool','Liverpool'],
+  ['tottenham','Tottenham'], ['newcastle','Newcastle'], ['aston villa','Aston Villa'],
+  ['brighton','Brighton'], ['everton','Everton'], ['fulham','Fulham'],
+  ['barcellona','Barcelona'], ['barcelona','Barcelona'], ['valencia','Valencia'],
+  ['siviglia','Sevilla'], ['sevilla','Sevilla'], ['betis','Real Betis'],
+  ['villarreal','Villarreal'], ['athletic bilbao','Athletic Club'],
+  ['benfica','Benfica'], ['porto','FC Porto'], ['sporting lisbona','Sporting CP'],
+  ['ajax','Ajax'], ['psv','PSV Eindhoven'], ['feyenoord','Feyenoord'],
+  ['monaco','Monaco'], ['marsiglia','Marseille'], ['lione','Lyon'],
+  ['lille','Lille'], ['lens','Lens'], ['celtic','Celtic'], ['rangers','Rangers'],
+  ['leverkusen','Bayer Leverkusen'], ['stoccarda','Stuttgart'],
+  ['eintracht francoforte','Eintracht Frankfurt'], ['rb lipsia','RB Leipzig']
+].map(([alias, name]) => ({alias, name})).sort((a,b) => b.alias.length-a.alias.length);
+function namesInQuestion(question) {
+  const source = normalize(question);
+  const found = [];
+  for (const team of TEAM_ALIASES) {
+    const pattern = new RegExp('(?:^| )' + team.alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=$| )','g');
+    for (const m of source.matchAll(pattern)) {
+      const start = m.index + (m[0].startsWith(' ') ? 1 : 0), end = start+team.alias.length;
+      if (found.some(t => start < t.end && end > t.start)) continue;
+      found.push({start, end, name: team.name});
+    }
+  }
+  found.sort((a,b) => a.start-b.start);
+  return found;
 }
 function extractMatches(question) {
   const text = String(question || '').slice(0, 700);
-  const parts = text.split(/[,;\n]|\s+e\s+(?=[A-ZÀ-Ý])/);
+  // The decimal comma in '8,5' is not a match delimiter.
+  const parts = text.split(/[;\n]|,(?=\s*[A-Za-zÀ-ÿ])|\s+e\s+(?=[A-ZÀ-Ý])/);
   const matches = [];
+  function add(home, away) {
+    if (!home || !away || normalize(home) === normalize(away)) return;
+    if (home.length < 2 || away.length < 2 || home.length > 45 || away.length > 45) return;
+    if (!matches.some(p => normalize(p.home) === normalize(home) && normalize(p.away) === normalize(away))) matches.push({home, away});
+  }
   for (const part of parts) {
     const m = part.match(/(.{2,90}?)\s*(?:\s+[vV][sS]\.?(?:\s+)|\s+contro\s+|\s*[-–—]\s*)(.{2,90})/);
     if (!m) continue;
-    const home = cleanTeam(m[1], true), away = cleanTeam(m[2]);
-    if (home.length < 2 || away.length < 2 || home.length > 45 || away.length > 45) continue;
-    if (!matches.some(p => normalize(p.home) === normalize(home) && normalize(p.away) === normalize(away))) matches.push({home, away});
+    const home=cleanTeam(m[1], true), away=cleanTeam(m[2]);
+    const recognized=namesInQuestion(part);
+    if (recognized.length===2) add(recognized[0].name, recognized[1].name);
+    else add(home,away);
+  }
+  // Accept natural phrasing such as "over 8,5 corner di Austria Irlanda di domani".
+  // Only infer an unseparated pair if exactly two recognizable team names are present.
+  if (!matches.length) {
+    const detected = namesInQuestion(text);
+    if (detected.length === 2) add(detected[0].name, detected[1].name);
   }
   return matches;
 }
@@ -73,25 +161,48 @@ async function saveCache(cacheKey, value, ttlSeconds) {
 async function footballGet(path, deviceHash, context, ttlSeconds) {
   const cacheKey = crypto.createHash('sha256').update('v1:' + path).digest('hex');
   const hit = await readCache(cacheKey);
-  if (hit) { context.cacheHits++; return hit; }
+  if (hit !== null) { context.cacheHits++; return hit; }
   const apiKey = process.env.API_FOOTBALL_KEY;
   if (!apiKey) throw new Error('API_FOOTBALL_KEY non configurata su Vercel.');
-  const current = await quota(deviceHash, true, path);
-  context.quota = current;
-  if (!current.allowed) throw new Error(current.reason || 'Budget Oracolo esaurito.');
-  context.apiCalls++;
-  const response = await fetch(BASE + '/' + path, {
-    headers: {'x-apisports-key': apiKey, 'Accept': 'application/json'},
-    signal: AbortSignal.timeout(12000)
-  });
-  const body = await response.json().catch(() => null);
-  if (!response.ok || !body || (body.errors && Object.keys(body.errors).length)) {
-    console.error('API-Football:', response.status, Object.keys(body?.errors || {}));
-    throw new Error('API-Football non ha restituito dati validi per questa richiesta.');
+  const reservation = await quota(deviceHash, true, path);
+  context.quota = reservation;
+  if (!reservation.allowed) throw new Error(reservation.reason || 'Budget Oracolo esaurito.');
+  const reservationId=reservation.reservationId;
+  if (!reservationId) throw new Error('Prenotazione chiamata non confermata dal database. Esegui il nuovo script SQL.');
+  let confirmed=false, completed=false;
+  try {
+    // Reservation is NOT a consumed call: finalize only after the provider responds.
+    const response = await fetch(BASE + '/' + path, {
+      headers: {'x-apisports-key': apiKey}, signal: AbortSignal.timeout(12000)
+    });
+    const remaining=response.headers.get('x-ratelimit-requests-remaining');
+    // API-Football exposes the actual remaining daily quota in its response headers.
+    // A normal HTTP response from the provider is counted unless it expressly reports
+    // a non-charged rate-limit/auth failure. Network failures are not assumed consumed.
+    confirmed = response.ok || (response.status !== 401 && response.status !== 403 && response.status !== 429 && remaining !== null);
+    const body = await response.json().catch(() => null);
+    if (!response.ok || !body || (body.errors && Object.keys(body.errors).length)) {
+      const codes=body?.errors && typeof body.errors==='object' ? Object.keys(body.errors) : [];
+      console.error('API-Football:', response.status, codes);
+      if (codes.some(x => /requests|rate|limit|token|key|subscription/i.test(x))) confirmed=false;
+      throw new Error(response.status===429 ? 'API-Football ha raggiunto il limite temporaneo di richieste.' :
+        (response.status===401||response.status===403) ? 'API-Football rifiuta la chiave o il piano: verifica API_FOOTBALL_KEY su Vercel.' :
+        'API-Football ha risposto con un errore ('+response.status+(codes.length?', '+codes.join(', '):'')+').');
+    }
+    const value = Array.isArray(body.response) ? body.response : body.response || {};
+    if (confirmed) context.apiCalls++;
+    await finishReservation(deviceHash,reservationId,confirmed);
+    completed=true;
+    await saveCache(cacheKey, value, ttlSeconds);
+    return value;
+  } catch(e) {
+    if (!completed) {
+      // Once a HTTP response was received, keep its verified charge state.
+      try { await finishReservation(deviceHash,reservationId,confirmed); }
+      catch(finishErr) { console.error('Oracolo finalize recovery:',finishErr.message); }
+    }
+    throw e;
   }
-  const value = Array.isArray(body.response) ? body.response : body.response || {};
-  await saveCache(cacheKey, value, ttlSeconds);
-  return value;
 }
 function scoreFixture(f) {
   return {
@@ -122,55 +233,82 @@ function flattenOdds(rows) {
   }
   return out;
 }
-async function buildMatch(pair, deviceHash, context) {
-  const names = await footballGet('teams?search=' + encodeURIComponent(pair.home), deviceHash, context, 86400 * 7);
-  const target = normalize(pair.home);
-  const team = (names || []).find(x => normalize(x.team?.name) === target) ||
-    (names || []).find(x => normalize(x.team?.name).includes(target) || target.includes(normalize(x.team?.name))) || (names || [])[0];
-  if (!team?.team?.id) throw new Error('Squadra non trovata: ' + pair.home + '. Verifica come è scritto il nome.');
-  const fixtures = await footballGet('fixtures?team=' + team.team.id + '&next=20', deviceHash, context, 3600 * 3);
-  const away = normalize(pair.away);
-  const match = (fixtures || []).find(f => f.teams?.home?.id === team.team.id && (
-    normalize(f.teams?.away?.name) === away || normalize(f.teams?.away?.name).includes(away) || away.includes(normalize(f.teams?.away?.name))
-  ));
-  if (!match) throw new Error('Non trovo un prossimo incontro ' + pair.home + ' - ' + pair.away + '. Controlla competizione e data.');
-  const fixtureId = match.fixture?.id;
-  const homeId = match.teams.home.id, awayId = match.teams.away.id;
-  const odds = await footballGet('odds?fixture=' + fixtureId, deviceHash, context, 3600 * 3);
-  const [lastHome, lastAway] = await Promise.all([
-    footballGet('fixtures?team=' + homeId + '&last=5', deviceHash, context, 3600 * 12),
-    footballGet('fixtures?team=' + awayId + '&last=5', deviceHash, context, 3600 * 12)
-  ]);
-  const homeRecent = (lastHome || []).filter(f => f.fixture?.status?.short === 'FT').slice(-5);
-  const awayRecent = (lastAway || []).filter(f => f.fixture?.status?.short === 'FT').slice(-5);
-  // One recent fixture per team for market-specific statistics; stays within the daily budget.
-  const stats = [];
-  for (const recent of [homeRecent.at(-1), awayRecent.at(-1)]) {
-    if (!recent?.fixture?.id) continue;
-    const data = await footballGet('fixtures/statistics?fixture=' + recent.fixture.id, deviceHash, context, 86400 * 7);
-    stats.push({partita: scoreFixture(recent), statistiche: fixtureStats(data)});
+function romeDate(d) {
+  return new Intl.DateTimeFormat('en-CA', {timeZone:'Europe/Rome', year:'numeric', month:'2-digit', day:'2-digit'}).format(d);
+}
+function requestedRelativeDay(question) {
+  if (!/\b(domani|tomorrow)\b/i.test(question)) return null;
+  const now = new Date();
+  // Noon avoids DST edge cases when computing the following calendar day.
+  const rome = romeDate(now);
+  const [y,m,d] = rome.split('-').map(Number);
+  return romeDate(new Date(Date.UTC(y,m-1,d+1,12,0,0)));
+}
+function likelyTeam(actual, wanted) {
+  const a=normalize(actual), b=normalize(wanted);
+  if (!a || !b) return false;
+  const equivalents = {'republic of ireland':['ireland','republic of ireland'],'as roma':['roma','as roma'],
+    'ac milan':['milan','ac milan'],'bayern munich':['bayern munchen','bayern munich'],
+    'inter':['inter milan','inter'],'fc porto':['porto','fc porto']};
+  const names=[b,...(equivalents[b]||[])];
+  return names.some(n=>a===n || a==='republic of '+n || (n.length>=5 && (a.includes(n)||n.includes(a))));
+}
+function matchTeams(f, pair) {
+  const home=f.teams?.home?.name, away=f.teams?.away?.name;
+  return (likelyTeam(home,pair.home)&&likelyTeam(away,pair.away)) ||
+    (likelyTeam(home,pair.away)&&likelyTeam(away,pair.home));
+}
+async function findFixture(pair, deviceHash, context, requiredDay) {
+  if (requiredDay) {
+    const fixtures=await footballGet('fixtures?date='+requiredDay,deviceHash,context,3600);
+    const found=(fixtures||[]).find(f=>matchTeams(f,pair));
+    if (found) return found;
+    // Do not search arbitrary lookalike teams or waste quota on 20 other fixtures.
+    throw new Error('Non risulta '+pair.home+' – '+pair.away+' nel calendario API-Football del '+requiredDay+'. Verifica la data o la denominazione delle squadre.');
   }
-  return {
-    incontro: {id: fixtureId, data: match.fixture?.date, competizione: match.league?.name,
-      casa: match.teams?.home?.name, ospite: match.teams?.away?.name},
-    quoteVerificate: flattenOdds(odds),
-    recentiCasa: homeRecent.map(scoreFixture), recentiOspite: awayRecent.map(scoreFixture),
-    statisticheUltimePartite: stats
-  };
+  const names=await footballGet('teams?search='+encodeURIComponent(pair.home),deviceHash,context,86400*7);
+  const candidate=(names||[]).find(x=>likelyTeam(x.team?.name,pair.home));
+  if (!candidate?.team?.id) throw new Error('Non trovo la squadra '+pair.home+' nel database API-Football.');
+  const fixtures=await footballGet('fixtures?team='+candidate.team.id+'&next=40',deviceHash,context,3600);
+  const found=(fixtures||[]).find(f=>matchTeams(f,pair));
+  if (!found) throw new Error('Non trovo il prossimo incontro '+pair.home+' – '+pair.away+' nei dati disponibili. Specifica la data.');
+  return found;
+}
+async function buildMatch(pair, deviceHash, context, requiredDay) {
+  const match=await findFixture(pair,deviceHash,context,requiredDay);
+  const fixtureId = match.fixture?.id;
+  const homeId = match.teams?.home?.id, awayId = match.teams?.away?.id;
+  if (!fixtureId||!homeId||!awayId) throw new Error('Partita trovata ma identificativo non disponibile.');
+  const odds=await footballGet('odds?fixture='+fixtureId,deviceHash,context,3600*3);
+  const [lastHome,lastAway]=await Promise.all([
+    footballGet('fixtures?team='+homeId+'&last=5',deviceHash,context,3600*12),
+    footballGet('fixtures?team='+awayId+'&last=5',deviceHash,context,3600*12)
+  ]);
+  const homeRecent=(lastHome||[]).filter(f=>['FT','AET','PEN'].includes(f.fixture?.status?.short)).slice(-5);
+  const awayRecent=(lastAway||[]).filter(f=>['FT','AET','PEN'].includes(f.fixture?.status?.short)).slice(-5);
+  const stats=[];
+  for(const recent of [homeRecent.at(-1),awayRecent.at(-1)]) {
+    if(!recent?.fixture?.id) continue;
+    const rows=await footballGet('fixtures/statistics?fixture='+recent.fixture.id,deviceHash,context,86400*7);
+    stats.push({partita:scoreFixture(recent),statistiche:fixtureStats(rows)});
+  }
+  return {incontro:{id:fixtureId,data:match.fixture?.date,competizione:match.league?.name,
+    casa:match.teams?.home?.name,ospite:match.teams?.away?.name},
+    quoteVerificate:flattenOdds(odds),recentiCasa:homeRecent.map(scoreFixture),
+    recentiOspite:awayRecent.map(scoreFixture),statisticheUltimePartite:stats};
 }
 async function getOracleData(question, deviceId) {
   const deviceHash = validDevice(deviceId);
   if (!process.env.API_FOOTBALL_KEY) throw new Error('API_FOOTBALL_KEY non configurata su Vercel.');
   const matches = extractMatches(question);
-  if (!matches.length) throw new Error('Indica la partita nel formato «Napoli - Roma» (puoi inserirne fino a due).');
+  if (!matches.length) throw new Error('Non riesco a riconoscere con certezza le due squadre. Scrivi i nomi delle squadre (per esempio Austria Irlanda o Napoli - Roma).');
   if (matches.length > 2) throw new Error('Per preservare il budget, analizza al massimo due partite per richiesta.');
   const context = {apiCalls: 0, cacheHits: 0, quota: await quota(deviceHash)};
-  if (context.quota.deviceRemaining < 1 || context.quota.remainingAssigned < 1)
-    throw new Error('Budget Oracolo esaurito per questo dispositivo o per la lega.');
+  const requiredDay = requestedRelativeDay(question);
   const data = [];
   const warnings = [];
   for (const pair of matches) {
-    try { data.push(await buildMatch(pair, deviceHash, context)); }
+    try { data.push(await buildMatch(pair, deviceHash, context, requiredDay)); }
     catch (e) { warnings.push(pair.home + ' - ' + pair.away + ': ' + e.message); }
   }
   context.quota = await quota(deviceHash);
@@ -189,3 +327,5 @@ module.exports = async function handler(req, res) {
   }
 };
 module.exports.getOracleData = getOracleData;
+
+module.exports._extractMatches = extractMatches;

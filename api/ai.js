@@ -119,9 +119,9 @@ module.exports = async function handler(req,res){
 
   });
   const json=await upstream.json().catch(()=>({}));
-  if(!upstream.ok){let msg=upstream.status===429?'Limite gratuito Gemini raggiunto: riprova più tardi.':upstream.status===404?'Modello Gemini non disponibile: verifica GEMINI_MODEL su Vercel.':'Gemini non è disponibile al momento.';return reply(res,upstream.status===429?429:502,{error:msg,quota,oracleQuota:oracleResult?.quota});}
+  if(!upstream.ok){let msg=upstream.status===429?'Limite gratuito Gemini raggiunto: riprova più tardi.':upstream.status===404?'Modello Gemini non disponibile: verifica GEMINI_MODEL su Vercel.':'Gemini non è disponibile al momento.';return reply(res,upstream.status===429?429:502,{error:msg,quota,oracleQuota:oracleResult?.quota,footballContext:oracleMode&&oracleFetch?oracleResult:null});}
   const answer=(json.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim();
   return reply(res,200,{answer:answer||'Gemini non ha restituito una risposta.',quota,oracleQuota:oracleResult?.quota,footballCalls:oracleResult?.apiCalls,footballCacheHits:oracleResult?.cacheHits,footballContext:oracleMode&&oracleFetch?oracleResult:null});
- }catch(e){return reply(res,504,{error:'Timeout o errore di connessione a Gemini. Riprova.',quota,oracleQuota:oracleResult?.quota});}
+ }catch(e){return reply(res,504,{error:'Timeout o errore di connessione a Gemini. Riprova.',quota,oracleQuota:oracleResult?.quota,footballContext:oracleMode&&oracleFetch?oracleResult:null});}
  finally{clearTimeout(timeout);}
 };

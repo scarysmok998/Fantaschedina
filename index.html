@@ -188,7 +188,7 @@ function quotaHtml(){
  const percent=Math.min(100,Math.round(used/limit*100));
  const cssClass=percent>=90?'danger':percent>=75?'warn':'';
  const reset=q?.resetAt?new Date(q.resetAt).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'}):'—';
- return `<div class="ai-quota" aria-live="polite"><div class="ai-quota-top"><strong>⚡ Budget Gemini condiviso</strong><span class="ai-quota-numbers">${q?used+' / '+limit:'Caricamento…'} richieste oggi</span></div><div class="ai-quota-track"><div class="ai-quota-fill ${cssClass}" style="width:${percent}%"></div></div><div class="ai-quota-foot"><span>${q?left+' disponibili nella lega':'In attesa dei dati'}</span><span>Questo dispositivo: ${q?deviceUsed+' / '+deviceLimit:'— / '+deviceLimit}</span><span>Reset: ${reset} (ora italiana)</span></div><div class="ai-quota-note">Conta solo le richieste prenotate da FantaSchedina, non gli eventuali utilizzi in Google AI Studio.</div></div>`;
+ return `<div class="ai-quota" aria-live="polite"><div class="ai-quota-top"><strong>⚡ Budget Gemini condiviso</strong><span class="ai-quota-numbers">${q?used+' / '+limit:'Caricamento…'} richieste oggi</span></div><div class="ai-quota-track"><div class="ai-quota-fill ${cssClass}" style="width:${percent}%"></div></div><div class="ai-quota-foot"><span>${q?left+' disponibili nella lega':'In attesa dei dati'}</span><span>Questo dispositivo: ${q?deviceUsed+' / '+deviceLimit:'— / '+deviceLimit}</span><span>Reset: ${reset} (ora italiana)</span></div></div>`;
 }
 async function refreshAiQuota(){
  try{
@@ -279,11 +279,11 @@ async function askAi(question){
   const data=await response.json().catch(()=>({}));
   if(data.quota)aiQuota=data.quota;
   if(data.oracleQuota)oracleQuota=data.oracleQuota;
-  if(response.ok&&fetchOracle&&data.footballContext)oracleContext=data.footballContext;
+  if(fetchOracle&&data.footballContext)oracleContext=data.footballContext;
   if(!response.ok)throw new Error(data.error||'Servizio non disponibile');
   aiHistory.push({role:'assistant',text:String(data.answer||'Nessuna risposta ricevuta.').slice(0,6000)});
  }catch(e){aiHistory.push({role:'assistant',text:'Non riesco a rispondere ora: '+String(e.message||e)});}
- finally{if(fetchOracle)oracleApiArmed=false;aiBusy=false;if(tab==='ai'){aiScrollPending=true;render();}await Promise.all([refreshAiQuota(),oracleMode?refreshOracleQuota():Promise.resolve()]);}
+ finally{if(fetchOracle)oracleApiArmed=!oracleContext;aiBusy=false;if(tab==='ai'){aiScrollPending=true;render();}await Promise.all([refreshAiQuota(),oracleMode?refreshOracleQuota():Promise.resolve()]);}
 }
 function render(){const titles={ai:['FantaSchedina AI.',''],live:['Schedina LIVE.','Tutte le selezioni della giornata in corso, con gli esiti aggiornati.'],overview:['La lega dei pronostici.','Numeri, rivalità e qualche schedina da dimenticare.'],players:['Player DNA.','Rendimento, forma e profilo di ciascun pronosticatore.'],bets:['Il registro delle giocate.','Consulta lo storico ufficiale dei pronostici.'],weeks:['Una settimana alla volta.','Multipla, pagante e risultati dello storico.'],sim:['E se avessimo fatto così?','Il passato non si cambia, ma si può simulare.'],awards:['Hall of Fame & Shame.','Trofei, record e prese in giro rigorosamente statistiche.'],admin:['La cabina di comando.','Gestione delle giornate, delle quote e degli esiti.'],data:['Il tuo archivio.','Backup, importazione e gestione dei dati della lega.']};$('#pageTitle').textContent=titles[tab][0];$('#pageDesc').textContent=titles[tab][1];$('#pageDesc').style.display=tab==='ai'?'none':'';const aiNotice=document.querySelector('#systemNotice');if(aiNotice)aiNotice.style.display=tab==='ai'?'none':'';document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));$('#content').innerHTML=({overview:overview,live:livePage,players:playersPage,bets:betsPage,weeks:weeksPage,sim:simPage,awards:awardsPage,ai:aiPage,admin:adminPage})[tab]();bindPage();if(tab==='ai'&&aiScrollPending){aiScrollPending=false;requestAnimationFrame(scrollAiToLatest)}}function setMobileMenu(open){
   const isOpen=Boolean(open)&&window.matchMedia('(max-width:640px)').matches;
