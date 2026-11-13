@@ -729,12 +729,12 @@ function adminPage(){
 }
 
 // Import Sisal: OCR nel browser, revisione obbligatoria, scrittura solo dopo conferma.
-let importRows=[],importBusy=false,importImageName='';
+let importRows=[],importBusy=false,importImageName='',importStep='review';
 function screenshotImportPanel(){
  const next=Math.max(1,...allWeeks())+1;
  const playerOptions=players().map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('');
  return `<section class="card import-panel" id="screenshotPanel">
- <div class="import-head"><div><h2 style="margin:0 0 7px">📸 Importa una schedina da screenshot</h2><div class="import-tip">Carica lo screenshot Sisal → controlla partita, pronostico, quota e giocatore → salva tutte le selezioni come <strong>IN ATTESA</strong>.</div></div><span class="pill">NUOVO</span></div>
+ <div class="import-head"><div><h2 style="margin:0 0 7px">📸 Importa una schedina da screenshot</h2><div class="import-tip">Carica lo screenshot → verifica le 7 selezioni → assegna un giocatore diverso a ciascuna → conferma i pronostici <strong>IN ATTESA</strong>.</div></div><span class="pill">NUOVO</span></div>
  <div class="formgrid" style="margin-top:14px">
  <label>Giornata<input id="imWeek" type="number" min="1" value="${next}" required></label>
  <label>Pagante<select id="imPayer" class="select"><option value="">Da indicare</option>${playerOptions}</select></label>
@@ -780,17 +780,35 @@ function extractScreenshotPicks(raw){
 function renderImportPreview(){
  const target=$('#imPreview');if(!target)return;
  if(!importRows.length){target.innerHTML='';return}
+ const count=players().length;
+ const isAssign=importStep==='assign';
  const opts='<option value="">Assegna giocatore…</option>'+players().map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('');
- target.innerHTML=`<div class="notice" style="margin:12px 0">${importRows.length} selezioni rilevate. <b>Controlla ogni campo e assegna il pronostico al giocatore giusto:</b> l'OCR può leggere male nomi, mercati e quote. Tutti gli esiti partiranno da “In attesa”.</div>
- <div class="table-wrap"><table class="import-table"><thead><tr><th>#</th><th>Giocatore</th><th>Partita</th><th>Pronostico</th><th>Quota</th><th></th></tr></thead><tbody>${importRows.map((r,i)=>`<tr data-im-row="${i}"><td>${i+1}</td><td><select name="imPlayer">${opts}</select></td><td><input name="imMatch" value="${esc(r.match)}" required></td><td><input name="imPick" value="${esc(r.pick)}" required></td><td><input name="imOdd" inputmode="decimal" value="${esc(r.odds)}" required></td><td><button class="icon-btn" type="button" data-im-remove="${i}" title="Rimuovi">✕</button></td></tr>`).join('')}</tbody></table></div>
- <div class="import-actions"><button type="button" class="btn primary" id="imSave">✓ Conferma e salva ${importRows.length} pronostici</button><button type="button" class="btn" id="imClear">Annulla importazione</button></div>`;
- target.querySelectorAll('[data-im-row]').forEach((row,i)=>{row.querySelector('[name=imPlayer]').value=importRows[i].player||''});
+ const msg=isAssign
+  ?`<strong>Passaggio 2 di 2 · Assegna i giocatori.</strong> Uno per pronostico, senza duplicati. ${importRows.length}/${count} selezioni.`
+  :`<strong>Passaggio 1 di 2 · Controlla i dati riconosciuti.</strong> Correggi partita, pronostico e quota. Servono esattamente ${count} selezioni (ora ${importRows.length}).`;
+ target.innerHTML=`<div class="notice" style="margin:12px 0">${msg} L'OCR può commettere errori: nessun dato viene salvato prima della conferma.</div>
+ <div class="table-wrap"><table class="import-table"><thead><tr><th>#</th>${isAssign?'<th>Giocatore</th>':''}<th>Partita</th><th>Pronostico</th><th>Quota</th>${isAssign?'':'<th></th>'}</tr></thead><tbody>${importRows.map((r,i)=>`<tr data-im-row="${i}"><td>${i+1}</td>${isAssign?`<td><select name="imPlayer" aria-label="Giocatore per pronostico ${i+1}">${opts}</select></td>`:''}<td><input name="imMatch" value="${esc(r.match)}" required ${isAssign?'readonly':''}></td><td><input name="imPick" value="${esc(r.pick)}" required ${isAssign?'readonly':''}></td><td><input name="imOdd" inputmode="decimal" value="${esc(r.odds)}" required ${isAssign?'readonly':''}></td>${isAssign?'':`<td><button class="icon-btn" type="button" data-im-remove="${i}" title="Rimuovi">✕</button></td>`}</tr>`).join('')}</tbody></table></div>
+ <div class="import-actions">${isAssign?`<button type="button" class="btn" id="imBack">← Correggi i pronostici</button><button type="button" class="btn primary" id="imSave">✓ Conferma e salva i ${count} pronostici</button>`:`<button type="button" class="btn primary" id="imNext">Continua · Assegna giocatori →</button>`}<button type="button" class="btn" id="imClear">Annulla importazione</button></div>`;
+ target.querySelectorAll('[data-im-row]').forEach((row,i)=>{const sel=row.querySelector('[name=imPlayer]');if(sel){sel.value=importRows[i].player||'';sel.onchange=()=>{syncImportRows();updateAvailableImportPlayers()}}});
  target.querySelectorAll('[data-im-remove]').forEach(b=>b.onclick=()=>{syncImportRows();importRows.splice(Number(b.dataset.imRemove),1);renderImportPreview()});
- $('#imClear').onclick=()=>{importRows=[];renderImportPreview();imMessage('Importazione annullata. Nessun dato salvato.')};
- $('#imSave').onclick=saveImportedPicks;
+ $('#imClear').onclick=()=>{importRows=[];importStep='review';renderImportPreview();imMessage('Importazione annullata. Nessun dato salvato.')};
+ if(isAssign){$('#imBack').onclick=()=>{syncImportRows();importStep='review';renderImportPreview()};$('#imSave').onclick=saveImportedPicks;updateAvailableImportPlayers()}
+ else $('#imNext').onclick=()=>{
+  syncImportRows();
+  if(importRows.length!==count)return imMessage(`Servono esattamente ${count} pronostici, uno per ciascun giocatore. Ora ce ne sono ${importRows.length}.`,true);
+  const valid=importRows.every(r=>r.match&&r.pick&&Number.isFinite(Number(String(r.odds).replace(',','.')))&&Number(String(r.odds).replace(',','.'))>1&&Number(String(r.odds).replace(',','.'))<=1000);
+  if(!valid)return imMessage('Correggi tutti i campi: partita, pronostico e quota superiore a 1.',true);
+  importStep='assign';renderImportPreview();imMessage('Ora assegna ciascuno dei sette giocatori a una selezione.');
+ };
+}
+function updateAvailableImportPlayers(){
+ const selects=[...document.querySelectorAll('[data-im-row] [name=imPlayer]')];
+ const selected=selects.map(s=>s.value).filter(Boolean);
+ selects.forEach(sel=>[...sel.options].forEach(opt=>{if(opt.value)opt.disabled=opt.value!==sel.value&&selected.includes(opt.value)}));
+ const save=$('#imSave');if(save)save.disabled=selects.length!==players().length||selected.length!==players().length||new Set(selected).size!==players().length;
 }
 function syncImportRows(){document.querySelectorAll('[data-im-row]').forEach((row,i)=>{
- if(!importRows[i])return;importRows[i]={player:row.querySelector('[name=imPlayer]').value,match:row.querySelector('[name=imMatch]').value.trim(),pick:row.querySelector('[name=imPick]').value.trim(),odds:row.querySelector('[name=imOdd]').value.trim()};
+ if(!importRows[i])return;const sel=row.querySelector('[name=imPlayer]');importRows[i]={player:sel?sel.value:importRows[i].player||'',match:row.querySelector('[name=imMatch]').value.trim(),pick:row.querySelector('[name=imPick]').value.trim(),odds:row.querySelector('[name=imOdd]').value.trim()};
 })}
 async function readScreenshot(){
  if(importBusy)return;
@@ -802,7 +820,7 @@ async function readScreenshot(){
   await loadOCR();
   worker=await window.Tesseract.createWorker('ita+eng',1,{logger:m=>{if(m.status==='recognizing text')imMessage('Lettura screenshot: '+Math.round((m.progress||0)*100)+'%')}});
   const {data}=await worker.recognize(file);
-  importRows=extractScreenshotPicks(data.text||'');importImageName=file.name;
+  importRows=extractScreenshotPicks(data.text||'');importImageName=file.name;importStep='review';
   if(!importRows.length){importRows=[{player:'',match:'',pick:'',odds:''}];imMessage('Non ho riconosciuto le selezioni. Puoi compilarle manualmente qui sotto.',true)}
   else imMessage(`Lettura completata: ${importRows.length} righe individuate. Verifica e correggi tutto prima del salvataggio.`);
   renderImportPreview();
@@ -813,13 +831,16 @@ async function saveImportedPicks(){
  if(importBusy)return;syncImportRows();
  const week=Number($('#imWeek')?.value),payer=$('#imPayer')?.value||'',stake=Number($('#imStake')?.value);
  if(!Number.isInteger(week)||week<1)return imMessage('Inserisci una giornata valida.',true);
- if(!importRows.length)return imMessage('Non ci sono selezioni da salvare.',true);
+ if(importStep!=='assign')return imMessage('Prima controlla i pronostici e assegna i giocatori.',true);
+ if(importRows.length!==players().length)return imMessage(`Servono esattamente ${players().length} pronostici.`,true);
  const b=importRows.map(r=>({...r,odds:Number(String(r.odds).replace(',','.'))}));
  if(b.some(r=>!r.player||!r.match||!r.pick||!Number.isFinite(r.odds)||r.odds<=1||r.odds>1000))return imMessage('Completa giocatore, partita, pronostico e quota valida per ogni riga.',true);
+ if(new Set(b.map(r=>r.player)).size!==players().length||b.some(r=>!players().includes(r.player)))return imMessage('Ogni giocatore deve avere esattamente un pronostico.',true);
  if(!payer||!Number.isFinite(stake)||stake<0)return imMessage('Seleziona il pagante e controlla la puntata.',true);
  const existing=db.bets.filter(x=>Number(x.week)===week);
  const duplicates=b.filter(r=>existing.some(x=>x.player===r.player||x.match.toLowerCase()===r.match.toLowerCase()&&x.pick.toLowerCase()===r.pick.toLowerCase()));
- if(duplicates.length&&!confirm(`Attenzione: nella giornata ${week} ci sono già ${existing.length} pronostici e ${duplicates.length} selezioni sembrano duplicate (stesso giocatore oppure stessa partita/pronostico). Vuoi aggiungere comunque tutti i ${b.length} pronostici?`))return;
+ if(existing.length)return imMessage(`La giornata ${week} contiene già ${existing.length} pronostici. Per evitare doppioni, scegli una giornata vuota oppure modifica quelli esistenti dall'Admin.`,true);
+ if(duplicates.length)return imMessage('Sono presenti selezioni duplicate. Controlla la giornata prima di procedere.',true);
  if(!confirm(`Confermi il salvataggio di ${b.length} pronostici in attesa per la giornata ${week}?`))return;
  importBusy=true;$('#imSave').disabled=true;imMessage('Salvataggio nel database in corso…');
  try{
@@ -828,13 +849,13 @@ async function saveImportedPicks(){
   }
   const payload=b.map(r=>({week,player:r.player,match:r.match,pick:r.pick,odds:r.odds,result:'A',date:null,market:''}));
   const {error}=await client.from('picks').insert(payload);if(error)throw error;
-  importRows=[];await fetchAll();tab='admin';render();adminMessage(`Importazione completata: ${payload.length} pronostici salvati in attesa. Quando termineranno le partite, modifica il singolo esito dalla tabella in basso.`);
+  importRows=[];importStep='review';await fetchAll();tab='admin';render();adminMessage(`Importazione completata: ${payload.length} pronostici salvati in attesa. Quando termineranno le partite, modifica il singolo esito dalla tabella in basso.`);
  }catch(err){imMessage('Errore durante il salvataggio: '+shortErr(err)+'. Se la giornata è stata creata, puoi riprovare senza duplicare i pronostici.',true);if($('#imSave'))$('#imSave').disabled=false}
  finally{importBusy=false}
 }
 function bindScreenshotImport(){
  if($('#imRead'))$('#imRead').onclick=readScreenshot;
- if($('#imAdd'))$('#imAdd').onclick=()=>{syncImportRows();importRows.push({player:'',match:'',pick:'',odds:''});renderImportPreview()};
+ if($('#imAdd'))$('#imAdd').onclick=()=>{syncImportRows();if(importRows.length>=players().length)return imMessage(`Puoi inserire al massimo ${players().length} selezioni.`,true);importStep='review';importRows.push({player:'',match:'',pick:'',odds:''});renderImportPreview()};
 }
 
 function adminMessage(m,error=false){const el=$('#adminMsg');if(el){el.textContent=m;el.style.color=error?'var(--red)':'var(--green)'}}
