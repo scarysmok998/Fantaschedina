@@ -89,6 +89,41 @@
 .ai-quota-fill.warn{background:#ffca69}.ai-quota-fill.danger{background:#ff6b7b}
 .ai-quota-foot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:11px;color:#9cadac;line-height:1.55}
 .ai-quota-note{font-size:11px;color:#9cadac;margin-top:7px}
+
+/* Modalità Oracolo: solo l'attuale scheda Fanta AI, nessun cambiamento globale */
+.ai-chat{position:relative;isolation:isolate}
+.ai-chat.oracle-active{border-color:#ab4dff;background:radial-gradient(ellipse at 60% 20%,#261537 0%,#151a27 52%,#121923 100%);box-shadow:0 0 14px #a82bfc55,0 0 30px #8419e522,inset 0 0 15px #ba35ff18;animation:oraclePulse 3.8s ease-in-out infinite}
+.ai-chat.oracle-active::before{content:"";pointer-events:none;position:absolute;inset:-3px;border-radius:inherit;padding:3px;background:conic-gradient(from var(--oracle-angle),#da7bff,#6f18bc 10%,transparent 25%,#af34ff 39%,#eb9eff 47%,transparent 63%,#8127e9 80%,#f4a3ff 92%,#da7bff);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;filter:drop-shadow(0 0 9px #b13cff);animation:oracleElectric 3.3s linear infinite}
+@property --oracle-angle{syntax:"<angle>";initial-value:0deg;inherits:false}
+@keyframes oracleElectric{to{--oracle-angle:360deg}}
+@keyframes oraclePulse{0%,100%{box-shadow:0 0 12px #a82bfc60,0 0 25px #8419e522,inset 0 0 12px #ba35ff16}50%{box-shadow:0 0 25px #b232ff85,0 0 44px #8419e544,inset 0 0 23px #ba35ff2e}}
+.ai-budget-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:2px}
+.ai-budget-grid .ai-quota{margin:0}
+.ai-oracle-quota{background:#24172f;border-color:#7842a5}
+.ai-oracle-quota .ai-quota-fill{background:#b963ff}
+.ai-oracle-quota .ai-quota-numbers{color:#ecd3ff}
+.ai-oracle-quota .ai-quota-foot{color:#c1a7d8}
+.ai-oracle-notice{display:flex;gap:12px;align-items:flex-start;border:1px solid #a44cde;border-radius:13px;background:#291b3e;padding:13px 15px;color:#f1e1ff;font-size:12px;line-height:1.6}
+.ai-oracle-notice strong{color:#db8dff}
+.ai-oracle-notice .orb{font-size:24px;line-height:1.4}
+.ai-oracle-notice[hidden]{display:none}
+.ai-compose-actions{display:flex;gap:9px;flex-shrink:0;align-items:stretch}
+.ai-oracle-toggle{width:60px;border-radius:12px;border:1px solid #5b6970;background:#17212b;color:#dadde3;font-size:25px;cursor:pointer;transition:background .18s,color .18s,box-shadow .2s,border-color .2s}
+.ai-oracle-toggle:hover{border-color:#a75ae5}
+.ai-oracle-toggle[aria-pressed="true"]{background:#3c2056;color:#efe1ff;border:2px solid #cc66ff;box-shadow:0 0 10px #b955f6a8,0 0 21px #ac2cfa65}
+.ai-oracle-rearm{width:50px;border-radius:12px;border:1px solid #9659c3;background:#2a1b38;color:#e1b8ff;font-size:23px;cursor:pointer;transition:all .2s}
+.ai-oracle-rearm:hover{box-shadow:0 0 10px #b954f7aa;border-color:#c77aff}
+.ai-oracle-rearm[aria-pressed="true"]{background:#8a32d1;color:white;border-color:#d38bff;box-shadow:0 0 13px #c24affaa}
+.ai-oracle-rearm:disabled{opacity:.55;cursor:not-allowed}
+.ai-chat .ai-api-hint{color:#cbb0e4}
+.ai-chat .ai-api-hint strong{color:#e4baff}
+.ai-chat.oracle-active .ai-compose textarea{border-color:#9e53cc;background:#1e192b}
+.ai-chat.oracle-active .ai-msg.user{background:#33213e;border-color:#9251b8}
+.ai-chat.oracle-active .ai-msg.assistant{border-color:#56416a;background:#211e30}
+.ai-chat.oracle-active .eyebrow{color:#d58dff}
+@media(max-width:820px){.ai-budget-grid{grid-template-columns:1fr}}
+@media(max-width:640px){.ai-compose-actions{width:100%}.ai-compose-actions .btn{flex:1}.ai-oracle-toggle{flex:0 0 61px}.ai-oracle-rearm{flex:0 0 51px}}
+@media(prefers-reduced-motion:reduce){.ai-chat.oracle-active,.ai-chat.oracle-active::before{animation:none}}
 </style><script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head><body><div id="mobileMenuBackdrop" class="mobile-menu-backdrop" aria-hidden="true"></div><button id="mobileMenuClose" class="mobile-menu-close" type="button" aria-label="Chiudi menu">×</button><div class="shell"><aside class="sidebar"><div><div class="brand">FANTA<b>SCHEDINA</b></div><div class="tiny brand-sub">The betting league / 2026</div></div><button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-label="Apri menu" aria-controls="nav" aria-expanded="false">☰</button><nav class="nav" id="nav" aria-label="Sezioni FantaSchedina"><button data-tab="overview" class="active"><span>◈</span><span class="nav-label">Panoramica</span></button><button data-tab="players"><span>♛</span><span class="nav-label">Giocatori</span></button><button data-tab="bets"><span>▤</span><span class="nav-label">Pronostici</span></button><button data-tab="live"><span>◉</span><span class="nav-label">Schedina LIVE</span></button><button data-tab="weeks"><span>▦</span><span class="nav-label">Giornate</span></button><button data-tab="sim"><span>⌁</span><span class="nav-label">Simulatore</span></button><button data-tab="awards"><span>★</span><span class="nav-label">Hall of Fame</span></button><button data-tab="ai"><span>✦</span><span class="nav-label">Fanta AI</span></button><button data-tab="admin"><span>⚙</span><span class="nav-label">Admin</span></button></nav><div class="sidebar-bottom">● <span style="color:var(--lime)">DATABASE LIVE</span><br>Pronostici e risultati aggiornati dall’area Admin.</div></aside><main class="main"><header class="top"><div><div class="eyebrow">● Season dashboard / 2026</div><h1 class="h1" id="pageTitle">La lega dei pronostici.</h1></div><div class="actions"><span class="pill" id="connectionStatus">CONNESSIONE...</span></div></header><p class="subtitle" id="pageDesc">Numeri, rivalità e qualche schedina da dimenticare.</p><div class="notice" id="systemNotice" style="margin-bottom:18px">Caricamento dati dal database Supabase…</div><div id="content"></div><div class="footer">FANTASCHEDINA © 2026 · Storico iniziale importato da Tracker FantaSchedina.xlsx · ROI simulato con 10 € per pronostico e unità costante · Nessun consiglio di scommessa.</div></main></div>
 
 
@@ -134,8 +169,8 @@ function aiMarkdown(source){
  flush();close();return out;
 }
 // Chat separata per ogni visitatore, senza scrittura nel database.
-let aiHistory=[],aiBusy=false,aiScrollPending=false,aiQuota=null;
-const AI_DAILY_LIMIT=500,AI_DEVICE_LIMIT=20;
+let aiHistory=[],aiBusy=false,aiScrollPending=false,aiQuota=null,oracleQuota=null,oracleMode=false,oracleApiArmed=false,oracleContext=null;
+const AI_DAILY_LIMIT=500,AI_DEVICE_LIMIT=40;
 function aiDeviceId(){
  try{
   let id=localStorage.getItem('fantaschedina_ai_device_v1');
@@ -170,6 +205,47 @@ async function refreshAiQuota(){
  }}
 }
 
+function oracleQuotaHtml(){
+ const q=oracleQuota;
+ const left=Math.max(0,Number(q?.deviceRemaining??14));
+ const used=Math.max(0,Number(q?.deviceUsed??0));
+ const percent=Math.min(100,Math.round(100*used/14));
+ const total=Number(q?.used??0);
+ const reset=q?.resetAt?new Date(q.resetAt).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'}):'—';
+ return `<div class="ai-quota ai-oracle-quota" aria-live="polite"><div class="ai-quota-top"><strong>🔮 Budget Oracolo (API-Football)</strong><span class="ai-quota-numbers">${q?left+' / 14 disponibili':'Caricamento…'}</span></div><div class="ai-quota-track"><div class="ai-quota-fill" style="width:${percent}%"></div></div><div class="ai-quota-foot"><span>Questo dispositivo: ${q?used+' / 14 chiamate':'— / 14 chiamate'}</span><span>Lega: ${q?total+' / 98':'— / 98'} · 2 di riserva</span><span>Reset: ${reset}</span></div></div>`;
+}
+async function refreshOracleQuota(){
+ try{
+  const response=await fetch('/api/football?deviceId='+encodeURIComponent(aiDeviceId()),{cache:'no-store'});
+  if(!response.ok)throw Error('Budget non disponibile');
+  const data=await response.json();
+  oracleQuota=data.quota||null;
+ }catch{oracleQuota=null;}
+ if(tab==='ai'){
+  const box=document.getElementById('oracleQuotaContainer');
+  if(box)box.innerHTML=oracleQuotaHtml();
+ }
+}
+function toggleOracleMode(){
+ if(aiBusy)return;
+ const input=document.querySelector('#aiForm textarea[name="question"]');
+ const value=input?.value||'';
+ oracleMode=!oracleMode;
+ oracleApiArmed=oracleMode;
+ if(!oracleMode)oracleContext=null;
+ render();
+ const restored=document.querySelector('#aiForm textarea[name="question"]');
+ if(restored){restored.value=value;restored.focus();}
+}
+function rearmOracleApi(){
+ if(aiBusy||!oracleMode||!oracleContext)return;
+ const input=document.querySelector('#aiForm textarea[name="question"]');
+ const value=input?.value||'';
+ oracleApiArmed=!oracleApiArmed;
+ render();
+ const restored=document.querySelector('#aiForm textarea[name="question"]');
+ if(restored){restored.value=value;restored.focus();}
+}
 function scrollAiToLatest(){
  const messages=document.querySelector('#aiMessages');
  if(!messages)return;
@@ -182,28 +258,34 @@ function scrollAiToLatest(){
  }
 }
 function aiPage(){
- const questions=['Chi ha la percentuale di vittorie più alta?','Confronta Andrea e Cosimo','Chi ha perso più pronostici?','Quale mercato ha funzionato meglio?'];
- return `<section class="card ai-chat"><div class="row between"><div><div class="eyebrow">✦ POWERED BY GEMINI</div><h2 style="margin:8px 0 0">Il tuo analista della lega</h2></div><span class="pill">DATI SUPABASE</span></div><p class="mini">Risposte basate sui pronostici registrati. Gemini può commettere errori: verifica sempre i calcoli. Nessuna previsione garantita.</p><div class="ai-quick">${questions.map((q,i)=>`<button type="button" data-ai-question="${i}">${esc(q)}</button>`).join('')}</div><div id="aiQuotaContainer">${quotaHtml()}</div><div id="aiMessages" class="ai-messages" role="log" aria-live="polite">${aiHistory.length?aiHistory.map(m=>`<div class="ai-msg ${m.role==='user'?'user':'assistant'}">${m.role==='assistant'?aiMarkdown(m.text):esc(m.text)}</div>`).join(''):'<div class="ai-msg assistant">Ciao! Chiedimi classifiche, confronti, statistiche delle schedine e anche qualche sfottò basato sui numeri. 😄</div>'}</div><form id="aiForm" class="ai-compose"><textarea name="question" maxlength="500" rows="2" placeholder="Scrivi una domanda sui pronostici…" aria-label="Domanda per Fanta AI" required></textarea><button type="submit" class="btn primary" ${aiBusy||(aiQuota&&(aiQuota.used>=aiQuota.dailyLimit||aiQuota.deviceUsed>=aiQuota.deviceLimit))?'disabled':''}>${aiBusy?'Attendi…':'Invia ✦'}</button></form><div id="aiStatus" class="mini" role="status">${aiBusy?'Gemini sta analizzando i dati…':'Il piano API gratuito ha limiti d’uso: se vengono raggiunti riprova più tardi.'}</div></section>`;
+ const notice=`<div class="ai-oracle-notice" ${oracleMode?'':'hidden'}><span class="orb">🔮</span><span><strong>Modalità Oracolo attiva</strong> · Puoi chiedere suggerimenti per trovare una quota, confrontare quote tra partite diverse o scegliere la soluzione migliore.<br>Per ottenere analisi approfondite, limita ogni richiesta a 1–2 partite. Le chiamate API non corrispondono alle domande: ogni partita può richiedere più chiamate e consumare rapidamente il budget disponibile.</span></div>`;
+ const apiHint=oracleMode?(oracleApiArmed?'⚡ Ricerca API pronta: la prossima domanda può consumare chiamate API-Football.':oracleContext?'✓ Le chiamate API sono sospese. Puoi continuare a fare domande sulle partite già analizzate, senza consumare ulteriormente il budget API-Football. Per analizzare nuove partite o aggiornare i dati, clicca il tasto ⚡ per riattivare la ricerca API.':'Attiva la ricerca API per iniziare l’analisi delle partite.'):'Il piano API gratuito ha limiti d’uso: se vengono raggiunti riprova più tardi.';
+ const rearm=oracleMode&&oracleContext?`<button id="oracleRearm" class="ai-oracle-rearm" type="button" title="${oracleApiArmed?'Annulla nuova ricerca API':'Riattiva le chiamate API-Football per la prossima domanda'}" aria-label="${oracleApiArmed?'Annulla ricerca API':'Riattiva ricerca API'}" aria-pressed="${oracleApiArmed}" ${aiBusy?'disabled':''}>⚡</button>`:'';
+ return `<section class="card ai-chat ${oracleMode?'oracle-active':''}"><div class="row between"><div><div class="eyebrow">✦ POWERED BY LEO</div></div><span class="pill">DATI SUPABASE</span></div><div class="ai-budget-grid"><div id="aiQuotaContainer">${quotaHtml()}</div><div id="oracleQuotaContainer">${oracleQuotaHtml()}</div></div>${notice}<div id="aiMessages" class="ai-messages" role="log" aria-live="polite">${aiHistory.length?aiHistory.map(m=>`<div class="ai-msg ${m.role==='user'?'user':'assistant'}">${m.role==='assistant'?aiMarkdown(m.text):esc(m.text)}</div>`).join(''):'<div class="ai-msg assistant">Ciao! Chiedimi classifiche, confronti, statistiche delle schedine e anche qualche sfottò basato sui numeri. 😄</div>'}</div><form id="aiForm" class="ai-compose"><textarea name="question" maxlength="500" rows="2" placeholder="Scrivi una domanda sui pronostici…" aria-label="Domanda per Fanta AI" required></textarea><div class="ai-compose-actions"><button id="oracleToggle" class="ai-oracle-toggle" type="button" title="${oracleMode?'Disattiva':'Attiva'} la Modalità Oracolo" aria-label="${oracleMode?'Disattiva':'Attiva'} la Modalità Oracolo" aria-pressed="${oracleMode}">🔮</button>${rearm}<button type="submit" class="btn primary" ${aiBusy||(aiQuota&&(aiQuota.used>=aiQuota.dailyLimit||aiQuota.deviceUsed>=aiQuota.deviceLimit))?'disabled':''}>${aiBusy?'Attendi…':'Invia ✦'}</button></div></form><div id="aiStatus" class="mini ai-api-hint" role="status">${aiBusy?(oracleMode?(oracleApiArmed?'Recupero dati API-Football e analisi Gemini in corso…':'Gemini sta valutando i dati già acquisiti…'):'Gemini sta analizzando i dati…'):apiHint}</div></section>`;
 }
+
 async function askAi(question){
  if(aiBusy)return;
  if(aiQuota&&(aiQuota.used>=aiQuota.dailyLimit||aiQuota.deviceUsed>=aiQuota.deviceLimit)){alert('Limite giornaliero AI raggiunto. Riprova dopo il ripristino.');return;}
  question=String(question||'').trim().slice(0,500);if(!question)return;
  if(!client){alert('Il database non è ancora collegato.');return;}
+ const fetchOracle=oracleMode&&oracleApiArmed;
  const previous=aiHistory.slice(-6).map(m=>({role:m.role,text:m.text.slice(0,1500)}));
  aiHistory.push({role:'user',text:question});aiBusy=true;aiScrollPending=true;render();
  try{
   // Usa esclusivamente le righe già lette da Supabase, non dati simulati.
   const dataset={players:db.players,rounds:db.weeks.map(w=>({week:w.week,payer:w.payer,stake:w.stake})),picks:db.bets.map(b=>({week:b.week,player:b.player,match:b.match,pick:b.pick,odds:b.odds,result:b.result,date:b.date,market:b.market}))};
-  const response=await fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question,history:previous,dataset,deviceId:aiDeviceId()})});
+  const response=await fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question,history:previous,dataset,deviceId:aiDeviceId(),oracle:oracleMode,oracleFetch:fetchOracle,oracleContext:oracleMode&&!fetchOracle?oracleContext:null})});
   const data=await response.json().catch(()=>({}));
   if(data.quota)aiQuota=data.quota;
+  if(data.oracleQuota)oracleQuota=data.oracleQuota;
+  if(response.ok&&fetchOracle&&data.footballContext)oracleContext=data.footballContext;
   if(!response.ok)throw new Error(data.error||'Servizio non disponibile');
   aiHistory.push({role:'assistant',text:String(data.answer||'Nessuna risposta ricevuta.').slice(0,6000)});
  }catch(e){aiHistory.push({role:'assistant',text:'Non riesco a rispondere ora: '+String(e.message||e)});}
- finally{aiBusy=false;if(tab==='ai'){aiScrollPending=true;render();}await refreshAiQuota();}
+ finally{if(fetchOracle)oracleApiArmed=false;aiBusy=false;if(tab==='ai'){aiScrollPending=true;render();}await Promise.all([refreshAiQuota(),oracleMode?refreshOracleQuota():Promise.resolve()]);}
 }
-function render(){const titles={ai:['FantaSchedina AI.','Chiedi a Gemini tutto sulle statistiche della lega.'],live:['Schedina LIVE.','Tutte le selezioni della giornata in corso, con gli esiti aggiornati.'],overview:['La lega dei pronostici.','Numeri, rivalità e qualche schedina da dimenticare.'],players:['Player DNA.','Rendimento, forma e profilo di ciascun pronosticatore.'],bets:['Il registro delle giocate.','Consulta lo storico ufficiale dei pronostici.'],weeks:['Una settimana alla volta.','Multipla, pagante e risultati dello storico.'],sim:['E se avessimo fatto così?','Il passato non si cambia, ma si può simulare.'],awards:['Hall of Fame & Shame.','Trofei, record e prese in giro rigorosamente statistiche.'],admin:['La cabina di comando.','Gestione delle giornate, delle quote e degli esiti.'],data:['Il tuo archivio.','Backup, importazione e gestione dei dati della lega.']};$('#pageTitle').textContent=titles[tab][0];$('#pageDesc').textContent=titles[tab][1];document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));$('#content').innerHTML=({overview:overview,live:livePage,players:playersPage,bets:betsPage,weeks:weeksPage,sim:simPage,awards:awardsPage,ai:aiPage,admin:adminPage})[tab]();bindPage();if(tab==='ai'&&aiScrollPending){aiScrollPending=false;requestAnimationFrame(scrollAiToLatest)}}function setMobileMenu(open){
+function render(){const titles={ai:['FantaSchedina AI.',''],live:['Schedina LIVE.','Tutte le selezioni della giornata in corso, con gli esiti aggiornati.'],overview:['La lega dei pronostici.','Numeri, rivalità e qualche schedina da dimenticare.'],players:['Player DNA.','Rendimento, forma e profilo di ciascun pronosticatore.'],bets:['Il registro delle giocate.','Consulta lo storico ufficiale dei pronostici.'],weeks:['Una settimana alla volta.','Multipla, pagante e risultati dello storico.'],sim:['E se avessimo fatto così?','Il passato non si cambia, ma si può simulare.'],awards:['Hall of Fame & Shame.','Trofei, record e prese in giro rigorosamente statistiche.'],admin:['La cabina di comando.','Gestione delle giornate, delle quote e degli esiti.'],data:['Il tuo archivio.','Backup, importazione e gestione dei dati della lega.']};$('#pageTitle').textContent=titles[tab][0];$('#pageDesc').textContent=titles[tab][1];$('#pageDesc').style.display=tab==='ai'?'none':'';const aiNotice=document.querySelector('#systemNotice');if(aiNotice)aiNotice.style.display=tab==='ai'?'none':'';document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));$('#content').innerHTML=({overview:overview,live:livePage,players:playersPage,bets:betsPage,weeks:weeksPage,sim:simPage,awards:awardsPage,ai:aiPage,admin:adminPage})[tab]();bindPage();if(tab==='ai'&&aiScrollPending){aiScrollPending=false;requestAnimationFrame(scrollAiToLatest)}}function setMobileMenu(open){
   const isOpen=Boolean(open)&&window.matchMedia('(max-width:640px)').matches;
   document.querySelector('#nav').classList.toggle('is-open',isOpen);
   document.querySelector('#mobileMenuBackdrop').classList.toggle('is-open',isOpen);
@@ -211,13 +293,15 @@ function render(){const titles={ai:['FantaSchedina AI.','Chiedi a Gemini tutto s
   document.querySelector('#mobileMenuToggle').setAttribute('aria-expanded',String(isOpen));
   document.body.classList.toggle('mobile-menu-open',isOpen);
 }
-function navigate(x){setMobileMenu(false);tab=x;render();if(x==='ai')refreshAiQuota();window.scrollTo({top:0,behavior:'smooth'})}
+function navigate(x){setMobileMenu(false);tab=x;render();if(x==='ai'){refreshAiQuota();refreshOracleQuota();}window.scrollTo({top:0,behavior:'smooth'})}
 document.querySelector('#mobileMenuToggle').addEventListener('click',()=>setMobileMenu(true));
 document.querySelector('#mobileMenuClose').addEventListener('click',()=>setMobileMenu(false));
 document.querySelector('#mobileMenuBackdrop').addEventListener('click',()=>setMobileMenu(false));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')setMobileMenu(false)});
 window.addEventListener('resize',()=>{if(window.innerWidth>640)setMobileMenu(false)});
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>navigate(b.dataset.tab));function bindPage(){if($('#aiForm')){
+ const orbBtn=document.querySelector('#oracleToggle');if(orbBtn)orbBtn.onclick=toggleOracleMode;
+ const lightning=document.querySelector('#oracleRearm');if(lightning)lightning.onclick=rearmOracleApi;
  $('#aiForm').onsubmit=e=>{e.preventDefault();askAi(new FormData(e.target).get('question'))};
  const input=$('#aiForm textarea[name="question"]');
  if(input)input.addEventListener('keydown',e=>{
