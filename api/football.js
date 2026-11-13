@@ -158,6 +158,21 @@ async function saveCache(cacheKey, value, ttlSeconds) {
   });
   if (!response.ok) console.error('Oracolo cache write failed:', response.status);
 }
+// Diagnostic details are server-side only: never print the API key or full request headers.
+function safeProviderErrors(errors) {
+  const entries = Array.isArray(errors) ? errors.map((value, index) => [String(index), value]) :
+    errors && typeof errors === 'object' ? Object.entries(errors) : [];
+  return entries.slice(0, 8).map(([code, value]) => {
+    const raw = typeof value === 'string' ? value : JSON.stringify(value ?? '');
+    const key = String(process.env.API_FOOTBALL_KEY || '');
+    let detail = raw || '';
+    if (key) detail = detail.split(key).join('[REDACTED]');
+    // Redact typical JWTs, api keys and authorization fields if echoed by an upstream error.
+    detail = detail.replace(/eyJ[A-Za-z0-9_-]{18,}\.[A-Za-z0-9._-]+/g,'[REDACTED]')
+      .replace(/(?:api[_-]?key|token|authorization|secret)\s*[:=]\s*[^\s,;]+/gi,'[REDACTED]');
+    return {code: String(code).slice(0,50), detail: detail.slice(0,500)};
+  });
+}
 async function footballGet(path, deviceHash, context, ttlSeconds) {
   const cacheKey = crypto.createHash('sha256').update('v1:' + path).digest('hex');
   const hit = await readCache(cacheKey);
@@ -182,11 +197,19 @@ async function footballGet(path, deviceHash, context, ttlSeconds) {
     confirmed = response.ok || (response.status !== 401 && response.status !== 403 && response.status !== 429 && remaining !== null);
     const body = await response.json().catch(() => null);
     if (!response.ok || !body || (body.errors && Object.keys(body.errors).length)) {
-      const codes=body?.errors && typeof body.errors==='object' ? Object.keys(body.errors) : [];
-      console.error('API-Football:', response.status, codes);
+      const detail=safeProviderErrors(body?.errors);
+      const codes=detail.map(x=>x.code);
+      // The code `plan` without its message is not enough to diagnose an API issue.
+      console.error('API-Football DIAGNOSTICA:', JSON.stringify({
+        endpoint: path.slice(0,180), httpStatus: response.status,
+        providerErrors: detail, providerRemaining: remaining,
+        providerDailyLimit: response.headers.get('x-ratelimit-requests-limit')
+      }));
       if (codes.some(x => /requests|rate|limit|token|key|subscription/i.test(x))) confirmed=false;
+      const planMessage=detail.find(x=>x.code==='plan')?.detail;
       throw new Error(response.status===429 ? 'API-Football ha raggiunto il limite temporaneo di richieste.' :
         (response.status===401||response.status===403) ? 'API-Football rifiuta la chiave o il piano: verifica API_FOOTBALL_KEY su Vercel.' :
+        planMessage ? 'API-Football segnala una limitazione del piano: '+planMessage.slice(0,250) :
         'API-Football ha risposto con un errore ('+response.status+(codes.length?', '+codes.join(', '):'')+').');
     }
     const value = Array.isArray(body.response) ? body.response : body.response || {};
@@ -279,23 +302,35 @@ async function buildMatch(pair, deviceHash, context, requiredDay) {
   const fixtureId = match.fixture?.id;
   const homeId = match.teams?.home?.id, awayId = match.teams?.away?.id;
   if (!fixtureId||!homeId||!awayId) throw new Error('Partita trovata ma identificativo non disponibile.');
-  const odds=await footballGet('odds?fixture='+fixtureId,deviceHash,context,3600*3);
-  const [lastHome,lastAway]=await Promise.all([
+  // Odds can be unavailable or restricted even when the fixture is accessible.
+  // Keep partial verified data, clearly label omissions and never invent a price.
+  const missing=[];
+  let odds=[];
+  try { odds=await footballGet('odds?fixture='+fixtureId,deviceHash,context,3600*3); }
+  catch(e) { missing.push('Quote non disponibili: '+e.message); }
+  const [homeResult,awayResult]=await Promise.allSettled([
     footballGet('fixtures?team='+homeId+'&last=5',deviceHash,context,3600*12),
     footballGet('fixtures?team='+awayId+'&last=5',deviceHash,context,3600*12)
   ]);
+  const lastHome=homeResult.status==='fulfilled'?homeResult.value:[];
+  const lastAway=awayResult.status==='fulfilled'?awayResult.value:[];
+  if(homeResult.status==='rejected')missing.push('Storico squadra casa non disponibile: '+homeResult.reason.message);
+  if(awayResult.status==='rejected')missing.push('Storico squadra ospite non disponibile: '+awayResult.reason.message);
   const homeRecent=(lastHome||[]).filter(f=>['FT','AET','PEN'].includes(f.fixture?.status?.short)).slice(-5);
   const awayRecent=(lastAway||[]).filter(f=>['FT','AET','PEN'].includes(f.fixture?.status?.short)).slice(-5);
   const stats=[];
   for(const recent of [homeRecent.at(-1),awayRecent.at(-1)]) {
     if(!recent?.fixture?.id) continue;
-    const rows=await footballGet('fixtures/statistics?fixture='+recent.fixture.id,deviceHash,context,86400*7);
-    stats.push({partita:scoreFixture(recent),statistiche:fixtureStats(rows)});
+    try {
+      const rows=await footballGet('fixtures/statistics?fixture='+recent.fixture.id,deviceHash,context,86400*7);
+      stats.push({partita:scoreFixture(recent),statistiche:fixtureStats(rows)});
+    } catch(e) { missing.push('Statistiche recenti non disponibili: '+e.message); }
   }
   return {incontro:{id:fixtureId,data:match.fixture?.date,competizione:match.league?.name,
     casa:match.teams?.home?.name,ospite:match.teams?.away?.name},
     quoteVerificate:flattenOdds(odds),recentiCasa:homeRecent.map(scoreFixture),
-    recentiOspite:awayRecent.map(scoreFixture),statisticheUltimePartite:stats};
+    recentiOspite:awayRecent.map(scoreFixture),statisticheUltimePartite:stats,
+    datiMancanti:missing};
 }
 async function getOracleData(question, deviceId) {
   const deviceHash = validDevice(deviceId);
