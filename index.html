@@ -63,6 +63,7 @@
 @media(prefers-reduced-motion:reduce){.mobile-menu-backdrop,.sidebar .nav{transition:none}}
 
 /* Fanta AI */
+.ai-messages{scroll-behavior:smooth;overscroll-behavior:contain}
 .ai-chat{display:flex;flex-direction:column;gap:15px;min-height:420px}
 .ai-messages{display:flex;flex-direction:column;gap:13px;min-height:260px;max-height:580px;overflow-y:auto;padding:6px 3px 15px}
 .ai-msg{padding:14px 16px;max-width:90%;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;font-size:14px;border-radius:15px;background:#1b2530;border:1px solid #34424c}
@@ -123,7 +124,18 @@ function aiMarkdown(source){
  flush();close();return out;
 }
 // Chat separata per ogni visitatore, senza scrittura nel database.
-let aiHistory=[],aiBusy=false;
+let aiHistory=[],aiBusy=false,aiScrollPending=false;
+function scrollAiToLatest(){
+ const messages=document.querySelector('#aiMessages');
+ if(!messages)return;
+ // Dopo ogni nuovo messaggio, mostra l'ultima risposta senza scorrere a mano.
+ messages.scrollTo({top:messages.scrollHeight,behavior:'smooth'});
+ // Se la chat e' fuori dalla finestra (schermi piccoli), portala in vista.
+ const rect=messages.getBoundingClientRect();
+ if(rect.bottom<90 || rect.top>window.innerHeight-100){
+   messages.scrollIntoView({behavior:'smooth',block:'nearest'});
+ }
+}
 function aiPage(){
  const questions=['Chi ha la percentuale di vittorie più alta?','Confronta Andrea e Cosimo','Chi ha perso più pronostici?','Quale mercato ha funzionato meglio?'];
  return `<section class="card ai-chat"><div class="row between"><div><div class="eyebrow">✦ POWERED BY GEMINI</div><h2 style="margin:8px 0 0">Il tuo analista della lega</h2></div><span class="pill">DATI SUPABASE</span></div><p class="mini">Risposte basate sui pronostici registrati. Gemini può commettere errori: verifica sempre i calcoli. Nessuna previsione garantita.</p><div class="ai-quick">${questions.map((q,i)=>`<button type="button" data-ai-question="${i}">${esc(q)}</button>`).join('')}</div><div id="aiMessages" class="ai-messages" role="log" aria-live="polite">${aiHistory.length?aiHistory.map(m=>`<div class="ai-msg ${m.role==='user'?'user':'assistant'}">${m.role==='assistant'?aiMarkdown(m.text):esc(m.text)}</div>`).join(''):'<div class="ai-msg assistant">Ciao! Chiedimi classifiche, confronti, statistiche delle schedine e anche qualche sfottò basato sui numeri. 😄</div>'}</div><form id="aiForm" class="ai-compose"><textarea name="question" maxlength="500" rows="2" placeholder="Scrivi una domanda sui pronostici…" aria-label="Domanda per Fanta AI" required></textarea><button type="submit" class="btn primary" ${aiBusy?'disabled':''}>${aiBusy?'Attendi…':'Invia ✦'}</button></form><div id="aiStatus" class="mini" role="status">${aiBusy?'Gemini sta analizzando i dati…':'Il piano API gratuito ha limiti d’uso: se vengono raggiunti riprova più tardi.'}</div></section>`;
@@ -133,7 +145,7 @@ async function askAi(question){
  question=String(question||'').trim().slice(0,500);if(!question)return;
  if(!client){alert('Il database non è ancora collegato.');return;}
  const previous=aiHistory.slice(-6).map(m=>({role:m.role,text:m.text.slice(0,1500)}));
- aiHistory.push({role:'user',text:question});aiBusy=true;render();
+ aiHistory.push({role:'user',text:question});aiBusy=true;aiScrollPending=true;render();
  try{
   // Usa esclusivamente le righe già lette da Supabase, non dati simulati.
   const dataset={players:db.players,rounds:db.weeks.map(w=>({week:w.week,payer:w.payer,stake:w.stake})),picks:db.bets.map(b=>({week:b.week,player:b.player,match:b.match,pick:b.pick,odds:b.odds,result:b.result,date:b.date,market:b.market}))};
@@ -142,9 +154,9 @@ async function askAi(question){
   if(!response.ok)throw new Error(data.error||'Servizio non disponibile');
   aiHistory.push({role:'assistant',text:String(data.answer||'Nessuna risposta ricevuta.').slice(0,6000)});
  }catch(e){aiHistory.push({role:'assistant',text:'Non riesco a rispondere ora: '+String(e.message||e)});}
- finally{aiBusy=false;if(tab==='ai')render();}
+ finally{aiBusy=false;if(tab==='ai'){aiScrollPending=true;render();}}
 }
-function render(){const titles={ai:['FantaSchedina AI.','Chiedi a Gemini tutto sulle statistiche della lega.'],live:['Schedina LIVE.','Tutte le selezioni della giornata in corso, con gli esiti aggiornati.'],overview:['La lega dei pronostici.','Numeri, rivalità e qualche schedina da dimenticare.'],players:['Player DNA.','Rendimento, forma e profilo di ciascun pronosticatore.'],bets:['Il registro delle giocate.','Consulta lo storico ufficiale dei pronostici.'],weeks:['Una settimana alla volta.','Multipla, pagante e risultati dello storico.'],sim:['E se avessimo fatto così?','Il passato non si cambia, ma si può simulare.'],awards:['Hall of Fame & Shame.','Trofei, record e prese in giro rigorosamente statistiche.'],admin:['La cabina di comando.','Gestione delle giornate, delle quote e degli esiti.'],data:['Il tuo archivio.','Backup, importazione e gestione dei dati della lega.']};$('#pageTitle').textContent=titles[tab][0];$('#pageDesc').textContent=titles[tab][1];document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));$('#content').innerHTML=({overview:overview,live:livePage,players:playersPage,bets:betsPage,weeks:weeksPage,sim:simPage,awards:awardsPage,ai:aiPage,admin:adminPage})[tab]();bindPage()}function setMobileMenu(open){
+function render(){const titles={ai:['FantaSchedina AI.','Chiedi a Gemini tutto sulle statistiche della lega.'],live:['Schedina LIVE.','Tutte le selezioni della giornata in corso, con gli esiti aggiornati.'],overview:['La lega dei pronostici.','Numeri, rivalità e qualche schedina da dimenticare.'],players:['Player DNA.','Rendimento, forma e profilo di ciascun pronosticatore.'],bets:['Il registro delle giocate.','Consulta lo storico ufficiale dei pronostici.'],weeks:['Una settimana alla volta.','Multipla, pagante e risultati dello storico.'],sim:['E se avessimo fatto così?','Il passato non si cambia, ma si può simulare.'],awards:['Hall of Fame & Shame.','Trofei, record e prese in giro rigorosamente statistiche.'],admin:['La cabina di comando.','Gestione delle giornate, delle quote e degli esiti.'],data:['Il tuo archivio.','Backup, importazione e gestione dei dati della lega.']};$('#pageTitle').textContent=titles[tab][0];$('#pageDesc').textContent=titles[tab][1];document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));$('#content').innerHTML=({overview:overview,live:livePage,players:playersPage,bets:betsPage,weeks:weeksPage,sim:simPage,awards:awardsPage,ai:aiPage,admin:adminPage})[tab]();bindPage();if(tab==='ai'&&aiScrollPending){aiScrollPending=false;requestAnimationFrame(scrollAiToLatest)}}function setMobileMenu(open){
   const isOpen=Boolean(open)&&window.matchMedia('(max-width:640px)').matches;
   document.querySelector('#nav').classList.toggle('is-open',isOpen);
   document.querySelector('#mobileMenuBackdrop').classList.toggle('is-open',isOpen);
@@ -158,7 +170,16 @@ document.querySelector('#mobileMenuClose').addEventListener('click',()=>setMobil
 document.querySelector('#mobileMenuBackdrop').addEventListener('click',()=>setMobileMenu(false));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')setMobileMenu(false)});
 window.addEventListener('resize',()=>{if(window.innerWidth>640)setMobileMenu(false)});
-document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>navigate(b.dataset.tab));function bindPage(){if($('#aiForm'))$('#aiForm').onsubmit=e=>{e.preventDefault();askAi(new FormData(e.target).get('question'))};document.querySelectorAll('[data-ai-question]').forEach(el=>el.onclick=()=>{const q=['Chi ha la percentuale di vittorie più alta?','Confronta Andrea e Cosimo','Chi ha perso più pronostici?','Quale mercato ha funzionato meglio?'][Number(el.dataset.aiQuestion)];askAi(q)});if($('#playerSelect'))$('#playerSelect').onchange=e=>{chosenPlayer=e.target.value;render()};if($('#weekFilter'))$('#weekFilter').onchange=e=>{chosenWeek=e.target.value;render()};if($('#statusFilter'))$('#statusFilter').onchange=e=>{betFilter=e.target.value;render()};if($('#simWeek'))$('#simWeek').onchange=e=>{simWeek=Number(e.target.value);simExcluded=[];render()};if($('#minOdd'))$('#minOdd').onchange=e=>{minOdd=Number(e.target.value);render()};}window.toggleSim=id=>{simExcluded=simExcluded.includes(id)?simExcluded.filter(x=>x!==id):[...simExcluded,id];render()};
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>navigate(b.dataset.tab));function bindPage(){if($('#aiForm')){
+ $('#aiForm').onsubmit=e=>{e.preventDefault();askAi(new FormData(e.target).get('question'))};
+ const input=$('#aiForm textarea[name="question"]');
+ if(input)input.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){
+   e.preventDefault();
+   if(!aiBusy&&input.value.trim())$('#aiForm').requestSubmit();
+  }
+ });
+ }document.querySelectorAll('[data-ai-question]').forEach(el=>el.onclick=()=>{const q=['Chi ha la percentuale di vittorie più alta?','Confronta Andrea e Cosimo','Chi ha perso più pronostici?','Quale mercato ha funzionato meglio?'][Number(el.dataset.aiQuestion)];askAi(q)});if($('#playerSelect'))$('#playerSelect').onchange=e=>{chosenPlayer=e.target.value;render()};if($('#weekFilter'))$('#weekFilter').onchange=e=>{chosenWeek=e.target.value;render()};if($('#statusFilter'))$('#statusFilter').onchange=e=>{betFilter=e.target.value;render()};if($('#simWeek'))$('#simWeek').onchange=e=>{simWeek=Number(e.target.value);simExcluded=[];render()};if($('#minOdd'))$('#minOdd').onchange=e=>{minOdd=Number(e.target.value);render()};}window.toggleSim=id=>{simExcluded=simExcluded.includes(id)?simExcluded.filter(x=>x!==id):[...simExcluded,id];render()};
 // Supabase: frontend uses only public anon/publishable key, never service_role.
 const cfg=window.FANTASCHEDINA_CONFIG||{};
 let client=null,adminSession=null,hasAdminPermission=false,editingId=null;
