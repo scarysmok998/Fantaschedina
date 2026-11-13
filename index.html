@@ -79,6 +79,16 @@
 .ai-compose textarea{flex:1;min-width:0;resize:vertical;min-height:55px;max-height:160px;background:#141d26;border:1px solid #3a4b55;border-radius:12px;padding:14px;color:#edf6fa;font:inherit}
 .ai-compose .btn{flex-shrink:0}
 @media(max-width:640px){.ai-msg{max-width:97%}.ai-compose{flex-direction:column}.ai-compose .btn{width:100%}}
+
+/* Fanta AI — indicatore quota condivisa */
+.ai-quota{margin:18px 0;padding:16px;border:1px solid #375243;border-radius:13px;background:#14221d}
+.ai-quota-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px}
+.ai-quota-numbers{font-weight:800;color:#e9f5e4}
+.ai-quota-track{height:10px;border-radius:8px;background:#2a3438;overflow:hidden;margin:12px 0 8px}
+.ai-quota-fill{height:100%;background:var(--lime);transition:width .3s ease;width:0}
+.ai-quota-fill.warn{background:#ffca69}.ai-quota-fill.danger{background:#ff6b7b}
+.ai-quota-foot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:11px;color:#9cadac;line-height:1.55}
+.ai-quota-note{font-size:11px;color:#9cadac;margin-top:7px}
 </style><script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script></head><body><div id="mobileMenuBackdrop" class="mobile-menu-backdrop" aria-hidden="true"></div><button id="mobileMenuClose" class="mobile-menu-close" type="button" aria-label="Chiudi menu">×</button><div class="shell"><aside class="sidebar"><div><div class="brand">FANTA<b>SCHEDINA</b></div><div class="tiny brand-sub">The betting league / 2026</div></div><button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-label="Apri menu" aria-controls="nav" aria-expanded="false">☰</button><nav class="nav" id="nav" aria-label="Sezioni FantaSchedina"><button data-tab="overview" class="active"><span>◈</span><span class="nav-label">Panoramica</span></button><button data-tab="players"><span>♛</span><span class="nav-label">Giocatori</span></button><button data-tab="bets"><span>▤</span><span class="nav-label">Pronostici</span></button><button data-tab="live"><span>◉</span><span class="nav-label">Schedina LIVE</span></button><button data-tab="weeks"><span>▦</span><span class="nav-label">Giornate</span></button><button data-tab="sim"><span>⌁</span><span class="nav-label">Simulatore</span></button><button data-tab="awards"><span>★</span><span class="nav-label">Hall of Fame</span></button><button data-tab="ai"><span>✦</span><span class="nav-label">Fanta AI</span></button><button data-tab="admin"><span>⚙</span><span class="nav-label">Admin</span></button></nav><div class="sidebar-bottom">● <span style="color:var(--lime)">DATABASE LIVE</span><br>Pronostici e risultati aggiornati dall’area Admin.</div></aside><main class="main"><header class="top"><div><div class="eyebrow">● Season dashboard / 2026</div><h1 class="h1" id="pageTitle">La lega dei pronostici.</h1></div><div class="actions"><span class="pill" id="connectionStatus">CONNESSIONE...</span></div></header><p class="subtitle" id="pageDesc">Numeri, rivalità e qualche schedina da dimenticare.</p><div class="notice" id="systemNotice" style="margin-bottom:18px">Caricamento dati dal database Supabase…</div><div id="content"></div><div class="footer">FANTASCHEDINA © 2026 · Storico iniziale importato da Tracker FantaSchedina.xlsx · ROI simulato con 10 € per pronostico e unità costante · Nessun consiglio di scommessa.</div></main></div>
 
 
@@ -124,7 +134,42 @@ function aiMarkdown(source){
  flush();close();return out;
 }
 // Chat separata per ogni visitatore, senza scrittura nel database.
-let aiHistory=[],aiBusy=false,aiScrollPending=false;
+let aiHistory=[],aiBusy=false,aiScrollPending=false,aiQuota=null;
+const AI_DAILY_LIMIT=500,AI_DEVICE_LIMIT=40;
+function aiDeviceId(){
+ try{
+  let id=localStorage.getItem('fantaschedina_ai_device_v1');
+  if(!id || !/^[a-zA-Z0-9-]{15,80}$/.test(id)){
+   id=(window.crypto?.randomUUID?.()||'device-'+Math.random().toString(36).slice(2)+'-'+Date.now());
+   localStorage.setItem('fantaschedina_ai_device_v1',id);
+  }
+  return id;
+ }catch{return 'temporary-'+(window.crypto?.randomUUID?.()||Math.random().toString(36).slice(2));}
+}
+function quotaHtml(){
+ const q=aiQuota;
+ const used=Math.max(0,Number(q?.used||0)),limit=Number(q?.dailyLimit||AI_DAILY_LIMIT),left=Math.max(0,limit-used);
+ const deviceUsed=Math.max(0,Number(q?.deviceUsed||0)),deviceLimit=Number(q?.deviceLimit||AI_DEVICE_LIMIT);
+ const percent=Math.min(100,Math.round(used/limit*100));
+ const cssClass=percent>=90?'danger':percent>=75?'warn':'';
+ const reset=q?.resetAt?new Date(q.resetAt).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'}):'—';
+ return `<div class="ai-quota" aria-live="polite"><div class="ai-quota-top"><strong>⚡ Budget Gemini condiviso</strong><span class="ai-quota-numbers">${q?used+' / '+limit:'Caricamento…'} richieste oggi</span></div><div class="ai-quota-track"><div class="ai-quota-fill ${cssClass}" style="width:${percent}%"></div></div><div class="ai-quota-foot"><span>${q?left+' disponibili nella lega':'In attesa dei dati'}</span><span>Questo dispositivo: ${q?deviceUsed+' / '+deviceLimit:'— / '+deviceLimit}</span><span>Reset: ${reset} (ora italiana)</span></div><div class="ai-quota-note">Conta solo le richieste prenotate da FantaSchedina, non gli eventuali utilizzi in Google AI Studio. Il limite per dispositivo è aggirabile cancellando i dati del browser.</div></div>`;
+}
+async function refreshAiQuota(){
+ try{
+  const response=await fetch('/api/ai?deviceId='+encodeURIComponent(aiDeviceId()),{cache:'no-store'});
+  if(!response.ok)throw Error('Contatore non disponibile');
+  const data=await response.json();
+  if(data.quota){aiQuota=data.quota;if(tab==='ai'){
+   const box=document.getElementById('aiQuotaContainer');if(box)box.innerHTML=quotaHtml();
+   const send=document.querySelector('#aiForm button[type=submit]');
+   if(send)send.disabled=aiBusy||aiQuota.used>=aiQuota.dailyLimit||aiQuota.deviceUsed>=aiQuota.deviceLimit;
+  }}
+ }catch{aiQuota=null;if(tab==='ai'){
+   const box=document.getElementById('aiQuotaContainer');if(box)box.innerHTML=quotaHtml();
+ }}
+}
+
 function scrollAiToLatest(){
  const messages=document.querySelector('#aiMessages');
  if(!messages)return;
@@ -138,10 +183,11 @@ function scrollAiToLatest(){
 }
 function aiPage(){
  const questions=['Chi ha la percentuale di vittorie più alta?','Confronta Andrea e Cosimo','Chi ha perso più pronostici?','Quale mercato ha funzionato meglio?'];
- return `<section class="card ai-chat"><div class="row between"><div><div class="eyebrow">✦ POWERED BY GEMINI</div><h2 style="margin:8px 0 0">Il tuo analista della lega</h2></div><span class="pill">DATI SUPABASE</span></div><p class="mini">Risposte basate sui pronostici registrati. Gemini può commettere errori: verifica sempre i calcoli. Nessuna previsione garantita.</p><div class="ai-quick">${questions.map((q,i)=>`<button type="button" data-ai-question="${i}">${esc(q)}</button>`).join('')}</div><div id="aiMessages" class="ai-messages" role="log" aria-live="polite">${aiHistory.length?aiHistory.map(m=>`<div class="ai-msg ${m.role==='user'?'user':'assistant'}">${m.role==='assistant'?aiMarkdown(m.text):esc(m.text)}</div>`).join(''):'<div class="ai-msg assistant">Ciao! Chiedimi classifiche, confronti, statistiche delle schedine e anche qualche sfottò basato sui numeri. 😄</div>'}</div><form id="aiForm" class="ai-compose"><textarea name="question" maxlength="500" rows="2" placeholder="Scrivi una domanda sui pronostici…" aria-label="Domanda per Fanta AI" required></textarea><button type="submit" class="btn primary" ${aiBusy?'disabled':''}>${aiBusy?'Attendi…':'Invia ✦'}</button></form><div id="aiStatus" class="mini" role="status">${aiBusy?'Gemini sta analizzando i dati…':'Il piano API gratuito ha limiti d’uso: se vengono raggiunti riprova più tardi.'}</div></section>`;
+ return `<section class="card ai-chat"><div class="row between"><div><div class="eyebrow">✦ POWERED BY GEMINI</div><h2 style="margin:8px 0 0">Il tuo analista della lega</h2></div><span class="pill">DATI SUPABASE</span></div><p class="mini">Risposte basate sui pronostici registrati. Gemini può commettere errori: verifica sempre i calcoli. Nessuna previsione garantita.</p><div class="ai-quick">${questions.map((q,i)=>`<button type="button" data-ai-question="${i}">${esc(q)}</button>`).join('')}</div><div id="aiQuotaContainer">${quotaHtml()}</div><div id="aiMessages" class="ai-messages" role="log" aria-live="polite">${aiHistory.length?aiHistory.map(m=>`<div class="ai-msg ${m.role==='user'?'user':'assistant'}">${m.role==='assistant'?aiMarkdown(m.text):esc(m.text)}</div>`).join(''):'<div class="ai-msg assistant">Ciao! Chiedimi classifiche, confronti, statistiche delle schedine e anche qualche sfottò basato sui numeri. 😄</div>'}</div><form id="aiForm" class="ai-compose"><textarea name="question" maxlength="500" rows="2" placeholder="Scrivi una domanda sui pronostici…" aria-label="Domanda per Fanta AI" required></textarea><button type="submit" class="btn primary" ${aiBusy||(aiQuota&&(aiQuota.used>=aiQuota.dailyLimit||aiQuota.deviceUsed>=aiQuota.deviceLimit))?'disabled':''}>${aiBusy?'Attendi…':'Invia ✦'}</button></form><div id="aiStatus" class="mini" role="status">${aiBusy?'Gemini sta analizzando i dati…':'Il piano API gratuito ha limiti d’uso: se vengono raggiunti riprova più tardi.'}</div></section>`;
 }
 async function askAi(question){
  if(aiBusy)return;
+ if(aiQuota&&(aiQuota.used>=aiQuota.dailyLimit||aiQuota.deviceUsed>=aiQuota.deviceLimit)){alert('Limite giornaliero AI raggiunto. Riprova dopo il ripristino.');return;}
  question=String(question||'').trim().slice(0,500);if(!question)return;
  if(!client){alert('Il database non è ancora collegato.');return;}
  const previous=aiHistory.slice(-6).map(m=>({role:m.role,text:m.text.slice(0,1500)}));
@@ -149,12 +195,13 @@ async function askAi(question){
  try{
   // Usa esclusivamente le righe già lette da Supabase, non dati simulati.
   const dataset={players:db.players,rounds:db.weeks.map(w=>({week:w.week,payer:w.payer,stake:w.stake})),picks:db.bets.map(b=>({week:b.week,player:b.player,match:b.match,pick:b.pick,odds:b.odds,result:b.result,date:b.date,market:b.market}))};
-  const response=await fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question,history:previous,dataset})});
+  const response=await fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question,history:previous,dataset,deviceId:aiDeviceId()})});
   const data=await response.json().catch(()=>({}));
+  if(data.quota)aiQuota=data.quota;
   if(!response.ok)throw new Error(data.error||'Servizio non disponibile');
   aiHistory.push({role:'assistant',text:String(data.answer||'Nessuna risposta ricevuta.').slice(0,6000)});
  }catch(e){aiHistory.push({role:'assistant',text:'Non riesco a rispondere ora: '+String(e.message||e)});}
- finally{aiBusy=false;if(tab==='ai'){aiScrollPending=true;render();}}
+ finally{aiBusy=false;if(tab==='ai'){aiScrollPending=true;render();}await refreshAiQuota();}
 }
 function render(){const titles={ai:['FantaSchedina AI.','Chiedi a Gemini tutto sulle statistiche della lega.'],live:['Schedina LIVE.','Tutte le selezioni della giornata in corso, con gli esiti aggiornati.'],overview:['La lega dei pronostici.','Numeri, rivalità e qualche schedina da dimenticare.'],players:['Player DNA.','Rendimento, forma e profilo di ciascun pronosticatore.'],bets:['Il registro delle giocate.','Consulta lo storico ufficiale dei pronostici.'],weeks:['Una settimana alla volta.','Multipla, pagante e risultati dello storico.'],sim:['E se avessimo fatto così?','Il passato non si cambia, ma si può simulare.'],awards:['Hall of Fame & Shame.','Trofei, record e prese in giro rigorosamente statistiche.'],admin:['La cabina di comando.','Gestione delle giornate, delle quote e degli esiti.'],data:['Il tuo archivio.','Backup, importazione e gestione dei dati della lega.']};$('#pageTitle').textContent=titles[tab][0];$('#pageDesc').textContent=titles[tab][1];document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));$('#content').innerHTML=({overview:overview,live:livePage,players:playersPage,bets:betsPage,weeks:weeksPage,sim:simPage,awards:awardsPage,ai:aiPage,admin:adminPage})[tab]();bindPage();if(tab==='ai'&&aiScrollPending){aiScrollPending=false;requestAnimationFrame(scrollAiToLatest)}}function setMobileMenu(open){
   const isOpen=Boolean(open)&&window.matchMedia('(max-width:640px)').matches;
@@ -164,7 +211,7 @@ function render(){const titles={ai:['FantaSchedina AI.','Chiedi a Gemini tutto s
   document.querySelector('#mobileMenuToggle').setAttribute('aria-expanded',String(isOpen));
   document.body.classList.toggle('mobile-menu-open',isOpen);
 }
-function navigate(x){setMobileMenu(false);tab=x;render();window.scrollTo({top:0,behavior:'smooth'})}
+function navigate(x){setMobileMenu(false);tab=x;render();if(x==='ai')refreshAiQuota();window.scrollTo({top:0,behavior:'smooth'})}
 document.querySelector('#mobileMenuToggle').addEventListener('click',()=>setMobileMenu(true));
 document.querySelector('#mobileMenuClose').addEventListener('click',()=>setMobileMenu(false));
 document.querySelector('#mobileMenuBackdrop').addEventListener('click',()=>setMobileMenu(false));
