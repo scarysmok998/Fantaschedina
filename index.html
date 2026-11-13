@@ -346,7 +346,7 @@ dialog{max-height:calc(100dvh - 40px);overflow-y:auto}
 .hof-record-value{font-family:'Space Grotesk',sans-serif;font-size:24px;letter-spacing:-.6px;font-weight:750;color:var(--lime);font-variant-numeric:tabular-nums}
 .hof-record-desc{font-size:12px;color:var(--muted);line-height:1.55;margin-top:auto}
 .hof-record.hero{padding:20px;gap:9px}
-.hof-record.hero .hof-record-name{font-size:23px}
+.hof-record.hero .hof-record-name{font-size:23px;line-height:1.35}
 .hof-record.hero .hof-record-value{font-size:30px}
 .hof-record.fire{border-color:#81503a}
 .hof-record.fire .hof-record-title,.hof-record.fire .hof-record-value,.hof-record.fire .award-icon{color:#ff8553}
@@ -490,8 +490,17 @@ function weeksPage(){const ww=allWeeks().map(weekData).reverse();return `<div cl
    runs.push({player:p,result:bet.result,length});
   }
  }
- const fire=[...runs].filter(x=>x.result==='V'&&x.length>=3).sort((a,b)=>b.length-a.length||a.player.localeCompare(b.player))[0];
- const ice=[...runs].filter(x=>x.result==='P'&&x.length>=3).sort((a,b)=>b.length-a.length||a.player.localeCompare(b.player))[0];
+ // Record di serie: tutti i giocatori a pari merito devono apparire nel premio.
+ const streakWinners=kind=>{
+  const streaks=runs.filter(x=>x.result===kind&&x.length>=3);
+  if(!streaks.length)return null;
+  const length=Math.max(...streaks.map(x=>x.length));
+  const names=[...new Set(streaks.filter(x=>x.length===length).map(x=>x.player))]
+   .sort((a,b)=>a.localeCompare(b,'it'));
+  return {length,names};
+ };
+ const fire=streakWinners('V');
+ const ice=streakWinners('P');
  // Consistency: deviazione standard delle percentuali di successo per giornata.
  // Almeno 3 giornate con esiti e 5 pronostici decisi per evitare campioni troppo piccoli.
  const consistent=ps.map(p=>{
@@ -524,7 +533,7 @@ function weeksPage(){const ww=allWeeks().map(weekData).reverse();return `<div cl
   {icon:'shield',title:'SAFE PLAYER',name:lowestAvg?.p,value:lowestAvg?fmt(lowestAvg.avg):null,desc:'Quota media più bassa · almeno 5 pronostici conclusi',tone:'cyan'},
   {icon:'calendar-x',title:'WORST ROUND',name:worst?'Giornata '+worst.w:null,value:worst?worst.won+'/'+worst.total:null,desc:'Minor percentuale di pronostici indovinati · giornate concluse',tone:'orange'}
  ];
- return `<section class="hof-group"><div class="section-title"><h2>Le serie</h2></div><div class="hof-grid hof-heroes">${card({icon:'flame',title:'ON FIRE',name:fire?.player,value:fire?'+'+fire.length:null,desc:'Record storico di vittorie consecutive · da 3 in su',tone:'fire',hero:true})}${card({icon:'snowflake',title:'ON ICE',name:ice?.player,value:ice?'−'+ice.length:null,desc:'Record storico di pronostici persi consecutivi · da 3 in su',tone:'ice',hero:true})}</div></section><section class="hof-group"><div class="section-title"><h2>Record individuali</h2></div><div class="hof-grid">${records.map(card).join('')}</div></section><section class="hof-group"><div class="section-title"><h2>Statistiche speciali</h2></div><div class="hof-grid hof-specials">${special.map(card).join('')}</div></section>`;
+ return `<section class="hof-group"><div class="section-title"><h2>Le serie</h2></div><div class="hof-grid hof-heroes">${card({icon:'flame',title:'ON FIRE',name:fire?.names.join(' · '),value:fire?'+'+fire.length:null,desc:'Record storico di vittorie consecutive · da 3 in su',tone:'fire',hero:true})}${card({icon:'snowflake',title:'ON ICE',name:ice?.names.join(' · '),value:ice?'−'+ice.length:null,desc:'Record storico di pronostici persi consecutivi · da 3 in su',tone:'ice',hero:true})}</div></section><section class="hof-group"><div class="section-title"><h2>Record individuali</h2></div><div class="hof-grid">${records.map(card).join('')}</div></section><section class="hof-group"><div class="section-title"><h2>Statistiche speciali</h2></div><div class="hof-grid hof-specials">${special.map(card).join('')}</div></section>`;
 }
 // Renderer Markdown minimale: escapa sempre HTML e non consente link o markup arbitrario.
 function aiMarkdown(source){
