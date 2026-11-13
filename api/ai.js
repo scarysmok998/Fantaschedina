@@ -70,3 +70,4 @@ module.exports = async function handler(req,res){
  }catch(e){return reply(res,504,{error:'Timeout o errore di connessione a Gemini. Riprova.'});}
  finally{clearTimeout(timeout);}
 };
+
