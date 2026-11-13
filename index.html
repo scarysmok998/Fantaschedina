@@ -135,7 +135,7 @@ function aiMarkdown(source){
 }
 // Chat separata per ogni visitatore, senza scrittura nel database.
 let aiHistory=[],aiBusy=false,aiScrollPending=false,aiQuota=null;
-const AI_DAILY_LIMIT=500,AI_DEVICE_LIMIT=40;
+const AI_DAILY_LIMIT=500,AI_DEVICE_LIMIT=20;
 function aiDeviceId(){
  try{
   let id=localStorage.getItem('fantaschedina_ai_device_v1');
@@ -153,7 +153,7 @@ function quotaHtml(){
  const percent=Math.min(100,Math.round(used/limit*100));
  const cssClass=percent>=90?'danger':percent>=75?'warn':'';
  const reset=q?.resetAt?new Date(q.resetAt).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'}):'—';
- return `<div class="ai-quota" aria-live="polite"><div class="ai-quota-top"><strong>⚡ Budget Gemini condiviso</strong><span class="ai-quota-numbers">${q?used+' / '+limit:'Caricamento…'} richieste oggi</span></div><div class="ai-quota-track"><div class="ai-quota-fill ${cssClass}" style="width:${percent}%"></div></div><div class="ai-quota-foot"><span>${q?left+' disponibili nella lega':'In attesa dei dati'}</span><span>Questo dispositivo: ${q?deviceUsed+' / '+deviceLimit:'— / '+deviceLimit}</span><span>Reset: ${reset} (ora italiana)</span></div><div class="ai-quota-note">Conta solo le richieste prenotate da FantaSchedina, non gli eventuali utilizzi in Google AI Studio. Il limite per dispositivo è aggirabile cancellando i dati del browser.</div></div>`;
+ return `<div class="ai-quota" aria-live="polite"><div class="ai-quota-top"><strong>⚡ Budget Gemini condiviso</strong><span class="ai-quota-numbers">${q?used+' / '+limit:'Caricamento…'} richieste oggi</span></div><div class="ai-quota-track"><div class="ai-quota-fill ${cssClass}" style="width:${percent}%"></div></div><div class="ai-quota-foot"><span>${q?left+' disponibili nella lega':'In attesa dei dati'}</span><span>Questo dispositivo: ${q?deviceUsed+' / '+deviceLimit:'— / '+deviceLimit}</span><span>Reset: ${reset} (ora italiana)</span></div><div class="ai-quota-note">Conta solo le richieste prenotate da FantaSchedina, non gli eventuali utilizzi in Google AI Studio.</div></div>`;
 }
 async function refreshAiQuota(){
  try{
