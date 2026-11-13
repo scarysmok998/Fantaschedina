@@ -707,7 +707,7 @@ function adminPage(){
  if(!hasAdminPermission)return `<div class="card"><h2>Account non autorizzato</h2><p>Il tuo account è autenticato ma non è stato aggiunto agli amministratori. Segui il README.</p><button class="btn" id="logoutBtn">Esci</button></div>`;
  const options=players().map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('');
  const defaultWeek=Math.max(1,...allWeeks())+1;
- const roundRows=[...db.weeks].sort((a,b)=>b.week-a.week).map(w=>`<tr><td><b>${w.week}</b></td><td>${esc(w.payer||'—')}</td><td>€ ${fmt(w.stake,2)}</td><td><button class="icon-btn" data-edit-round="${w.week}">Modifica</button></td></tr>`).join('');
+ const roundRows=[...db.weeks].sort((a,b)=>b.week-a.week).map(w=>`<tr><td><b>${w.week}</b></td><td>${esc(w.payer||'—')}</td><td>€ ${fmt(w.stake,2)}</td><td><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="icon-btn" type="button" data-edit-round="${w.week}">Modifica</button><button class="icon-btn" type="button" data-del-round="${w.week}" style="color:var(--red)" title="Elimina giornata ${w.week} e tutti i suoi pronostici">Elimina</button></div></td></tr>`).join('');
  const pickRows=[...orderedBets()].reverse().slice(0,100).map(b=>`<tr><td>${b.week}</td><td>${esc(b.player)}</td><td>${esc(b.match)}</td><td>${esc(b.pick)}</td><td>${fmt(b.odds)}</td><td>${badge(b.result)}</td><td><button class="icon-btn" data-edit-pick="${b.id}">✎</button> <button class="icon-btn" data-del-pick="${b.id}">✕</button></td></tr>`).join('');
  return `<div class="row between" style="margin-bottom:15px"><span class="pill">🔓 ADMIN AUTORIZZATO</span><button class="btn" id="logoutBtn">Esci</button></div>${screenshotImportPanel()}<div class="grid two">
  <div class="card"><h2 id="pickFormTitle">➕ Nuovo pronostico</h2><form id="pickForm" class="formgrid">
@@ -860,6 +860,32 @@ function editPick(id){const b=db.bets.find(x=>x.id===id);if(!b)return;editingId=
 async function deletePick(id){if(!confirm('Eliminare definitivamente questo pronostico?'))return;
  const {error}=await client.from('picks').delete().eq('id',id);if(error)return adminMessage(shortErr(error),true);
  await fetchAll();tab='admin';render();adminMessage('Pronostico eliminato.');}
+async function deleteRound(week){
+ if(!hasAdminPermission||!adminSession||!client)return adminMessage('Non sei autorizzato a eliminare le giornate.',true);
+ const round=db.weeks.find(r=>Number(r.week)===week);
+ if(!round)return adminMessage('Giornata non trovata: aggiorna la pagina.',true);
+ const count=db.bets.filter(b=>Number(b.week)===week).length;
+ const warning=`Eliminare DEFINITIVAMENTE la giornata ${week}${count?` e tutti i suoi ${count} pronostici`: ' (senza pronostici)'}?\n\nLa cancellazione modifica classifica, statistiche e Hall of Fame. Non può essere annullata.`;
+ if(!confirm(warning))return;
+ // Due eliminazioni esplicite: elimina prima i pronostici, quindi il record della giornata.
+ // Eventuali errori RLS o di rete vengono mostrati, senza dichiarare una falsa riuscita.
+ const buttons=[...document.querySelectorAll('[data-del-round]')];
+ buttons.forEach(b=>b.disabled=true);
+ try{
+  const {error:pickError}=await client.from('picks').delete().eq('week',week);
+  if(pickError)throw new Error('Errore eliminazione pronostici: '+shortErr(pickError));
+  const {error:roundError}=await client.from('rounds').delete().eq('week',week);
+  if(roundError)throw new Error('Errore eliminazione giornata: '+shortErr(roundError));
+  if(Number($('#roundForm')?.elements?.week?.value)===week)$('#roundForm').reset();
+  if(Number(chosenWeek)===week)chosenWeek='all';
+  if(Number(simWeek)===week){simWeek=null;simExcluded=[]}
+  await fetchAll();tab='admin';render();
+  adminMessage(`Giornata ${week} eliminata${count?` insieme a ${count} pronostici`:''}.`);
+ }catch(err){
+  await fetchAll();tab='admin';render();
+  adminMessage(shortErr(err)+' — controlla i dati aggiornati prima di riprovare.',true);
+ }finally{buttons.forEach(b=>b.disabled=false)}
+}
 function editRound(w){const x=db.weeks.find(r=>r.week===w);if(!x)return;const f=$('#roundForm');f.elements.week.value=x.week;f.elements.payer.value=x.payer||'';f.elements.stake.value=x.stake;f.scrollIntoView({behavior:'smooth',block:'center'})}
 const originalBindPage=bindPage;
 bindPage=function(){originalBindPage();bindScreenshotImport();
@@ -871,6 +897,7 @@ bindPage=function(){originalBindPage();bindScreenshotImport();
  document.querySelectorAll('[data-edit-pick]').forEach(el=>el.onclick=()=>editPick(Number(el.dataset.editPick)));
  document.querySelectorAll('[data-del-pick]').forEach(el=>el.onclick=()=>deletePick(Number(el.dataset.delPick)));
  document.querySelectorAll('[data-edit-round]').forEach(el=>el.onclick=()=>editRound(Number(el.dataset.editRound)));
+ document.querySelectorAll('[data-del-round]').forEach(el=>el.onclick=()=>deleteRound(Number(el.dataset.delRound)));
 };
 async function boot(){
  if(!cfg.url||!cfg.key||cfg.url.includes('INSERISCI')||cfg.key.includes('INSERISCI')){status('CONFIGURARE');notice('App pronta: collega Supabase compilando config.js con Project URL e chiave anon/publishable.',true);render();return}
