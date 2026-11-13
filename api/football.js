@@ -259,13 +259,33 @@ function flattenOdds(rows) {
 function romeDate(d) {
   return new Intl.DateTimeFormat('en-CA', {timeZone:'Europe/Rome', year:'numeric', month:'2-digit', day:'2-digit'}).format(d);
 }
-function requestedRelativeDay(question) {
-  if (!/\b(domani|tomorrow)\b/i.test(question)) return null;
-  const now = new Date();
-  // Noon avoids DST edge cases when computing the following calendar day.
-  const rome = romeDate(now);
-  const [y,m,d] = rome.split('-').map(Number);
-  return romeDate(new Date(Date.UTC(y,m-1,d+1,12,0,0)));
+function requestedDay(question) {
+  const text=String(question||'');
+  const now=new Date();
+  const today=romeDate(now);
+  const [ty,tm,td]=today.split('-').map(Number);
+  const offset= /\b(dopodomani|day after tomorrow)\b/i.test(text) ? 2 : /\b(domani|tomorrow)\b/i.test(text) ? 1 : /\b(oggi|today)\b/i.test(text) ? 0 : null;
+  if(offset!==null) return romeDate(new Date(Date.UTC(ty,tm-1,td+offset,12)));
+  const iso=text.match(/\b(20\d{2})-(0?[1-9]|1[0-2])-(0?[1-9]|[12]\d|3[01])\b/);
+  if(iso) return validDate(+iso[1],+iso[2],+iso[3]);
+  const numeric=text.match(/\b([0-3]?\d)[\/.]([01]?\d)[\/.](20\d{2})\b/);
+  if(numeric) return validDate(+numeric[3],+numeric[2],+numeric[1]);
+  const months={gennaio:1,febbraio:2,marzo:3,aprile:4,maggio:5,giugno:6,luglio:7,agosto:8,settembre:9,ottobre:10,novembre:11,dicembre:12,
+    january:1,february:2,march:3,april:4,may:5,june:6,july:7,august:8,september:9,october:10,november:11,december:12};
+  const names=Object.keys(months).join('|');
+  const written=text.match(new RegExp('\\b([0-3]?\\d)\\s+(?:di\\s+)?('+names+')\\s*(20\\d{2})?\\b','i'));
+  if(written) {
+    let year=written[3]?+written[3]:ty;
+    const month=months[written[2].toLowerCase()];
+    if(!written[3] && (month<tm || (month===tm && +written[1]<td))) year++;
+    return validDate(year,month,+written[1]);
+  }
+  return null;
+}
+function validDate(year,month,day) {
+  const date=new Date(Date.UTC(year,month-1,day,12));
+  if(date.getUTCFullYear()!==year || date.getUTCMonth()!==month-1 || date.getUTCDate()!==day) return null;
+  return `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
 }
 function likelyTeam(actual, wanted) {
   const a=normalize(actual), b=normalize(wanted);
@@ -282,20 +302,23 @@ function matchTeams(f, pair) {
     (likelyTeam(home,pair.away)&&likelyTeam(away,pair.home));
 }
 async function findFixture(pair, deviceHash, context, requiredDay) {
-  if (requiredDay) {
-    const fixtures=await footballGet('fixtures?date='+requiredDay,deviceHash,context,3600);
-    const found=(fixtures||[]).find(f=>matchTeams(f,pair));
-    if (found) return found;
-    // Do not search arbitrary lookalike teams or waste quota on 20 other fixtures.
-    throw new Error('Non risulta '+pair.home+' – '+pair.away+' nel calendario API-Football del '+requiredDay+'. Verifica la data o la denominazione delle squadre.');
-  }
-  const names=await footballGet('teams?search='+encodeURIComponent(pair.home),deviceHash,context,86400*7);
-  const candidate=(names||[]).find(x=>likelyTeam(x.team?.name,pair.home));
-  if (!candidate?.team?.id) throw new Error('Non trovo la squadra '+pair.home+' nel database API-Football.');
-  const fixtures=await footballGet('fixtures?team='+candidate.team.id+'&next=40',deviceHash,context,3600);
+  // On the Free plan API-Football rejects fixtures?team=ID&next=N.
+  // A date-scoped call is supported and avoids wasting the device budget.
+  if (!requiredDay) throw new Error('Per cercare '+pair.home+' – '+pair.away+' senza consumare chiamate inutili, indica la data (es. 14 novembre 2026 o domani).');
+  const fixtures=await footballGet('fixtures?date='+requiredDay,deviceHash,context,3600);
   const found=(fixtures||[]).find(f=>matchTeams(f,pair));
-  if (!found) throw new Error('Non trovo il prossimo incontro '+pair.home+' – '+pair.away+' nei dati disponibili. Specifica la data.');
-  return found;
+  if(found) return found;
+  throw new Error('Non risulta '+pair.home+' – '+pair.away+' nel calendario API-Football del '+requiredDay+'. Verifica la data o la denominazione delle squadre.');
+}
+async function recentFixtures(teamId, match, deviceHash, context) {
+  const league=match.league?.id, season=match.league?.season;
+  if(!league || !season) return [];
+  // The free plan may reject last=N too; use regular team/league/season filters.
+  const path='fixtures?league='+encodeURIComponent(league)+'&season='+encodeURIComponent(season)+'&team='+encodeURIComponent(teamId);
+  const fixtures=await footballGet(path,deviceHash,context,3600*12);
+  const kickoff=Date.parse(match.fixture?.date||'')||Date.now();
+  return (fixtures||[]).filter(f=>['FT','AET','PEN'].includes(f.fixture?.status?.short) && Date.parse(f.fixture?.date||'') < kickoff)
+    .sort((a,b)=>Date.parse(b.fixture?.date||'')-Date.parse(a.fixture?.date||'')).slice(0,5);
 }
 async function buildMatch(pair, deviceHash, context, requiredDay) {
   const match=await findFixture(pair,deviceHash,context,requiredDay);
@@ -309,17 +332,17 @@ async function buildMatch(pair, deviceHash, context, requiredDay) {
   try { odds=await footballGet('odds?fixture='+fixtureId,deviceHash,context,3600*3); }
   catch(e) { missing.push('Quote non disponibili: '+e.message); }
   const [homeResult,awayResult]=await Promise.allSettled([
-    footballGet('fixtures?team='+homeId+'&last=5',deviceHash,context,3600*12),
-    footballGet('fixtures?team='+awayId+'&last=5',deviceHash,context,3600*12)
+    recentFixtures(homeId,match,deviceHash,context),
+    recentFixtures(awayId,match,deviceHash,context)
   ]);
   const lastHome=homeResult.status==='fulfilled'?homeResult.value:[];
   const lastAway=awayResult.status==='fulfilled'?awayResult.value:[];
   if(homeResult.status==='rejected')missing.push('Storico squadra casa non disponibile: '+homeResult.reason.message);
   if(awayResult.status==='rejected')missing.push('Storico squadra ospite non disponibile: '+awayResult.reason.message);
-  const homeRecent=(lastHome||[]).filter(f=>['FT','AET','PEN'].includes(f.fixture?.status?.short)).slice(-5);
-  const awayRecent=(lastAway||[]).filter(f=>['FT','AET','PEN'].includes(f.fixture?.status?.short)).slice(-5);
+  const homeRecent=(lastHome||[]).slice(0,5);
+  const awayRecent=(lastAway||[]).slice(0,5);
   const stats=[];
-  for(const recent of [homeRecent.at(-1),awayRecent.at(-1)]) {
+  for(const recent of [homeRecent[0],awayRecent[0]]) {
     if(!recent?.fixture?.id) continue;
     try {
       const rows=await footballGet('fixtures/statistics?fixture='+recent.fixture.id,deviceHash,context,86400*7);
@@ -339,7 +362,7 @@ async function getOracleData(question, deviceId) {
   if (!matches.length) throw new Error('Non riesco a riconoscere con certezza le due squadre. Scrivi i nomi delle squadre (per esempio Austria Irlanda o Napoli - Roma).');
   if (matches.length > 2) throw new Error('Per preservare il budget, analizza al massimo due partite per richiesta.');
   const context = {apiCalls: 0, cacheHits: 0, quota: await quota(deviceHash)};
-  const requiredDay = requestedRelativeDay(question);
+  const requiredDay = requestedDay(question);
   const data = [];
   const warnings = [];
   for (const pair of matches) {
