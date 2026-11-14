@@ -48,7 +48,7 @@ module.exports = async function handler(req,res){
  const raw=body.dataset||{};
  if(!Array.isArray(raw.picks)||!Array.isArray(raw.rounds)||!Array.isArray(raw.players)||raw.picks.length>1500||raw.rounds.length>300||raw.players.length>60)return reply(res,400,{error:'Formato dei dati non valido.'});
  const picks=raw.picks.map(x=>({week:Number(x.week)||0,player:trimText(x.player,80),match:trimText(x.match,130),pick:trimText(x.pick,160),odds:Number(x.odds)||0,result:['A','V','P','N'].includes(x.result)?x.result:'A',date:trimText(x.date,20),market:trimText(x.market,70)}));
- const rounds=raw.rounds.map(x=>({week:Number(x.week)||0,payer:trimText(x.payer,80),stake:Number(x.stake)||0}));
+ const rounds=raw.rounds.map(x=>({week:Number(x.week)||0,payer:trimText(x.payer,80),stake:Number(x.stake)||0,bonus:x.bonus==null?null:(Number.isFinite(Number(x.bonus))&&Number(x.bonus)>=0?Number(x.bonus):null),potentialWin:x.potentialWin==null?null:(Number.isFinite(Number(x.potentialWin))&&Number(x.potentialWin)>=0?Number(x.potentialWin):null)}));
  const players=raw.players.map(x=>trimText(x,80));
  // Deterministic calculations: Gemini receives verified metrics rather than recomputing totals.
  const metrics=players.map(player=>{
