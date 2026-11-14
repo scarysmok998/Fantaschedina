@@ -381,7 +381,7 @@ dialog{max-height:calc(100dvh - 40px);overflow-y:auto}
 .fs-select{position:relative;display:block;width:100%;min-width:0}.fs-select>select{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;opacity:0!important;pointer-events:none!important;z-index:-1!important}
 .fs-select-trigger{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;width:100%;min-height:44px;padding:10px 12px;background:#131a23;color:var(--ink);border:1px solid #36414d;border-radius:var(--radius-control);font-weight:600;font-size:14px;line-height:1.4}
 .fs-select-trigger:hover{border-color:#71816c}.fs-select-trigger[aria-expanded=true]{border-color:var(--lime);box-shadow:0 0 0 2px #bafa3e20}.fs-select-trigger:disabled{opacity:.5;cursor:not-allowed}
-.fs-select-trigger .fs-chevron{flex:0 0 auto;width:16px;height:16px;color:#a8b6bd}.fs-select-menu{position:fixed;z-index:100000;background:#18212b;border:1px solid #45543f;border-radius:12px;box-shadow:0 16px 45px #000b;max-height:min(320px,55dvh);overflow:auto;padding:5px;min-width:160px}
+.fs-select-trigger .fs-chevron{flex:0 0 auto;width:16px;height:16px;color:#a8b6bd}.fs-select-menu{position:fixed;z-index:100000;background:#18212b;border:1px solid #45543f;border-radius:12px;box-shadow:0 16px 45px #000b;max-height:min(320px,55dvh);overflow:auto;overscroll-behavior:contain;padding:5px;min-width:160px}
 .fs-select-option{display:block;width:100%;border:0;border-radius:8px;background:transparent;color:#dce7eb;text-align:left;padding:11px 12px;font-size:14px;min-height:41px;cursor:pointer}.fs-select-option:hover,.fs-select-option:focus-visible{background:#29372f;color:var(--lime)}.fs-select-option[aria-selected=true]{background:#304032;color:var(--lime);font-weight:800}.fs-select-option:disabled{opacity:.28;cursor:not-allowed}
 @media(max-width:640px){.fs-select-menu{max-height:42dvh}.fs-select-option{min-height:45px}}
 
@@ -810,6 +810,16 @@ async function refreshPermission(){
 // Custom dropdowns progressively enhance every native select; native values/events stay intact.
 let openFsSelect=null;
 function closeFsSelect(){if(!openFsSelect)return;openFsSelect.menu.remove();openFsSelect.button.setAttribute('aria-expanded','false');openFsSelect=null}
+// Scrolling the list must never dismiss it. Reposition only for page/ancestor scrolls.
+function positionFsSelect(){
+ if(!openFsSelect)return;
+ const {button:btn,menu}=openFsSelect;
+ if(!btn.isConnected){closeFsSelect();return}
+ const r=btn.getBoundingClientRect(),width=Math.max(r.width,180);
+ menu.style.width=Math.min(width,window.innerWidth-20)+'px';
+ menu.style.left=Math.max(10,Math.min(r.left,window.innerWidth-menu.getBoundingClientRect().width-10))+'px';
+ menu.style.top=(r.bottom+menu.offsetHeight>window.innerHeight-8&&r.top>menu.offsetHeight?r.top-menu.offsetHeight-5:r.bottom+5)+'px';
+}
 function updateFsSelect(box){const sel=box.querySelector('select'),btn=box.querySelector('.fs-select-trigger');if(!sel||!btn)return;btn.querySelector('.fs-select-caption').textContent=sel.selectedOptions[0]?.textContent?.trim()||'Seleziona…';btn.disabled=sel.disabled;}
 function refreshSelects(){document.querySelectorAll('.fs-select').forEach(updateFsSelect);if(openFsSelect){const {box}=openFsSelect;closeFsSelect();if(box.isConnected){} }}
 function enhanceSelects(root){if(!root)return;root.querySelectorAll('select:not([multiple])').forEach(sel=>{
@@ -821,13 +831,16 @@ function enhanceSelects(root){if(!root)return;root.querySelectorAll('select:not(
   if(openFsSelect?.box===box){closeFsSelect();return}closeFsSelect();if(sel.disabled)return;
   const menu=document.createElement('div');menu.className='fs-select-menu';menu.setAttribute('role','listbox');menu.setAttribute('aria-label',btn.getAttribute('aria-label'));const items=[...sel.options];
   items.forEach(opt=>{const item=document.createElement('button');item.type='button';item.className='fs-select-option';item.setAttribute('role','option');item.setAttribute('aria-selected',String(opt.selected));item.textContent=opt.textContent;item.disabled=opt.disabled;item.onclick=()=>{sel.value=opt.value;sel.dispatchEvent(new Event('change',{bubbles:true}));updateFsSelect(box);closeFsSelect();btn.focus()};menu.appendChild(item)});
-  document.body.appendChild(menu);const r=btn.getBoundingClientRect();const width=Math.max(r.width,180);menu.style.width=Math.min(width,window.innerWidth-20)+'px';menu.style.left=Math.max(10,Math.min(r.left,window.innerWidth-menu.getBoundingClientRect().width-10))+'px';menu.style.top=(r.bottom+menu.offsetHeight>window.innerHeight-8&&r.top>menu.offsetHeight?r.top-menu.offsetHeight-5:r.bottom+5)+'px';btn.setAttribute('aria-expanded','true');openFsSelect={box,button:btn,menu};
+  document.body.appendChild(menu);btn.setAttribute('aria-expanded','true');openFsSelect={box,button:btn,menu};positionFsSelect();
  };
  btn.onclick=launch;btn.onkeydown=e=>{if(['Enter',' ','ArrowDown','ArrowUp'].includes(e.key)){e.preventDefault();launch();if(openFsSelect){const items=[...openFsSelect.menu.querySelectorAll('button:not(:disabled)')];(items.find(x=>x.getAttribute('aria-selected')==='true')||items[0])?.focus()}}};
  });}
 document.addEventListener('click',e=>{if(openFsSelect&&!openFsSelect.box.contains(e.target)&&!openFsSelect.menu.contains(e.target))closeFsSelect()});
 document.addEventListener('keydown',e=>{if(!openFsSelect)return;if(e.key==='Escape'){e.preventDefault();const b=openFsSelect.button;closeFsSelect();b.focus()}else if(['ArrowDown','ArrowUp','Home','End'].includes(e.key)&&openFsSelect.menu.contains(document.activeElement)){e.preventDefault();const opts=[...openFsSelect.menu.querySelectorAll('.fs-select-option:not(:disabled)')];const i=opts.indexOf(document.activeElement);const target=e.key==='Home'?0:e.key==='End'?opts.length-1:e.key==='ArrowDown'?(i+1)%opts.length:(i-1+opts.length)%opts.length;opts[target]?.focus()}});
-window.addEventListener('resize',closeFsSelect);document.addEventListener('scroll',closeFsSelect,true);
+window.addEventListener('resize',positionFsSelect);
+document.addEventListener('scroll',e=>{
+ if(openFsSelect&&!openFsSelect.menu.contains(e.target))positionFsSelect();
+},{capture:true,passive:true});
 
 const shortErr=e=>String(e?.message||e||'Errore sconosciuto');
 function adminPage(){
