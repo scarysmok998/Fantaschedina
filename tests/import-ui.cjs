@@ -30,6 +30,8 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
  assert.equal(await page.locator('[name=imPlayer]').count(),0,'unreviewed rows block next');
  await page.locator('[name=imReviewed]').first().check();
  await page.locator('#imPotentialReviewed').check();
+ assert.equal(await page.locator('[name=imPick]').first().isVisible(),false);
+ await page.locator('[data-im-edit]').first().click();
  await page.locator('[name=imPick]').first().fill('Over 3.5');
  assert.equal(await page.locator('[name=imReviewed]').first().isChecked(),false,'editing revokes review');
  assert.equal(await page.locator('#imPotentialReviewed').isChecked(),false,'editing a selection revokes total review');
@@ -40,6 +42,9 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
  await page.locator('#imNext').click();
  assert.equal(await page.locator('[name=imPlayer]').count(),0,'bad odds block next even reviewed');
  await page.locator('[name=imOdd]').first().fill('1,80');
+ await page.locator('[data-im-edit]').first().click();
+ assert.equal(await page.locator('[name=imPick]').first().isVisible(),false);
+ assert.equal(await page.locator('.im-cell-pick .im-display').first().innerText(),'Over 3.5');
  await page.locator('[name=imReviewed]').first().check();
  await page.locator('#imNext').click();
  assert.equal(await page.locator('[name=imPlayer]').count(),7);

@@ -1,0 +1,11 @@
+{
+ "rows":[
+ {"match":"Norvegia - Galles","pick":"U/O 2.5 SQUADRA 1: OVER","odds":1.80},
+ {"match":"Portogallo - Danimarca","pick":"GOAL/NOGOAL: GOAL","odds":1.57},
+ {"match":"Romania - Polonia","pick":"U/O 8.5 CORNER: OVER","odds":1.85},
+ {"match":"Salernitana - Catania","pick":"1X2 ESITO FINALE: 1","odds":2.90},
+ {"match":"Cavese - Crotone","pick":"1X2 ESITO FINALE: 1","odds":2.05},
+ {"match":"Spagna - Inghilterra","pick":"KANE H. O SOSTITUTO SEGNA O PRENDE PALO/TRAVERSA INC. T.S.: SI","odds":2.50},
+ {"match":"Belgio - Italia","pick":"ESPOSITO P. REALIZZA ALMENO 1 TIRI IN PORTA IN ENTRAMBI I TEMPI SI/NO: SI","odds":4.25}
+ ],"stake":5,"declaredOdds":360.86,"potentialWin":1804.29,"date":"14/11/2026"
+}

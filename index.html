@@ -13,8 +13,31 @@
 .import-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .import-input{display:block;width:100%;border:1px dashed #647653;border-radius:12px;padding:17px;background:#101a19;color:#d9e9de;margin-top:12px}
 .import-actions{display:flex;gap:9px;flex-wrap:wrap;margin:13px 0}
-.import-table{min-width:790px}.import-table td{vertical-align:top;padding:8px 5px}.import-table input,.import-table select{min-width:110px;padding:9px;font-size:12px}
-.import-table input[name=imMatch]{min-width:190px}.import-table input[name=imPick]{min-width:220px}
+/* Readable ticket preview; edit controls appear only on request. */
+.import-review-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:24px 0 12px}
+.import-review-heading h3{margin:0;font-size:19px}
+.import-review-table{width:100%;table-layout:fixed;white-space:normal}
+.import-review-table th{padding:14px 10px}
+.import-review-table td{padding:18px 10px;vertical-align:middle;overflow-wrap:anywhere;line-height:1.55}
+.import-review-table .im-col-num{width:40px}.import-review-table .im-col-match{width:23%}.import-review-table .im-col-odds{width:78px}.import-review-table .im-col-review{width:145px}.import-review-table .im-col-actions{width:110px}.import-review-table .im-col-player{width:135px}
+.im-display{display:block;font-size:14px;color:var(--ink)}
+.im-display.im-odds{font-weight:700;font-size:17px;font-variant-numeric:tabular-nums}
+.import-entry:not(.is-editing) :is(input[name=imMatch],input[name=imOdd],textarea[name=imPick]){display:none}
+.import-entry.is-editing .im-display{display:none}
+.import-entry :is(input:not([type=checkbox]),textarea,select){width:100%;min-width:0;margin:0;padding:10px;border:1px solid #3b4a43;border-radius:9px;background:#0d151c;color:var(--ink);font:inherit}
+.import-entry textarea{min-height:70px;resize:vertical;line-height:1.5;overflow:hidden}
+.import-entry :is(input,textarea,button):focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+.import-entry input[type=checkbox]{width:18px;min-width:18px;height:18px;margin:0;padding:0;flex:none;accent-color:var(--lime)}
+.im-review-check{display:flex;align-items:center;gap:8px;margin:0;min-height:44px;font-size:11px;color:#adc1b3;cursor:pointer}
+.import-entry.is-reviewed .im-review-check{color:var(--green)}
+.im-row-actions{display:flex;gap:6px}.im-row-actions .icon-btn{width:40px;height:44px;padding:0;font-size:17px;flex:none}
+.im-review-details{margin-top:7px;min-width:0;font-size:11px;color:#91a498}
+.im-review-details summary{cursor:pointer;padding:4px 0}
+.im-review-details pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0b1319;padding:10px;border-radius:8px;line-height:1.5}
+.im-alert{color:#efc784;font-size:12px}.im-pending{display:inline-block;margin-top:6px;color:#adbfcc;background:#29313d;border-radius:6px;padding:3px 7px;font-size:10px;font-weight:700}
+.import-source{max-width:100%;max-height:700px;object-fit:contain;display:block;margin:12px auto}
+@media(max-width:1100px){.import-review-table,.import-review-table tbody{display:block}.import-review-table thead{display:none}.import-review-table tr{display:grid;grid-template-columns:1fr auto;gap:12px;padding:16px 0;border-bottom:1px solid var(--border)}.import-review-table td{display:block;padding:0;border:0;min-width:0}.import-review-table td:before{content:attr(data-label);display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}.import-review-table td.im-cell-num{display:none}.import-review-table td.im-cell-match,.import-review-table td.im-cell-pick,.import-review-table td.im-cell-player{grid-column:1/-1}.import-review-table td.im-cell-pick{grid-row:auto}.import-review-table td.im-cell-review{grid-column:1}.import-review-table td.im-cell-actions{grid-column:2;align-self:end}.import-review-table .im-display{font-size:14px}.import-review-table td.im-cell-actions:before,.import-review-table td.im-cell-review:before{display:none}}
+@media(max-width:600px){.import-actions .btn{width:100%}.import-review-heading h3{font-size:17px}.import-review-heading .pill{font-size:9px}}
 .import-busy{color:#c2ed9c;font-size:12px;line-height:1.7;white-space:pre-line}
 .import-tip{font-size:12px;color:#a6b6ab;line-height:1.65}
 
@@ -403,6 +426,7 @@ dialog{max-height:calc(100dvh - 40px);overflow-y:auto}
 
 
 <script src="js/screenshot-import.js"></script>
+<script src="js/screenshot-layout.js"></script>
 <script>
 // Iconografia vettoriale coerente e indipendente dal dispositivo; nessuna libreria esterna.
 const ICON_PATHS={
@@ -871,6 +895,8 @@ function adminPage(){
  <label>Numero<input class="wide" type="number" min="1" name="week" value="${defaultWeek}" required></label>
  <label>Pagante<select class="wide select" name="payer"><option value="">Non indicato</option>${options}</select></label>
  <label>Vincita potenziale, bonus inclusi (€)<input name="potentialWin" inputmode="decimal" placeholder="Totale dichiarato, se disponibile"></label>
+ <label>Quota totale dichiarata (solo confronto)<input id="imDeclaredOdds" inputmode="decimal" placeholder="Quota riportata nello screenshot"></label>
+ <label>Data giocata (solo riferimento)<input id="imTicketDate" placeholder="gg/mm/aaaa"></label>
  <label>Di cui bonus, calcolato (€)<input name="bonus" readonly placeholder="Calcolato dalle 7 quote al salvataggio"></label>
  <label>Puntata effettiva (€)<input class="wide" type="number" min="0" step="0.01" name="stake" value="5"></label>
  <div style="grid-column:1/-1"><button class="btn primary" type="submit">Salva giornata</button></div></form>
@@ -879,7 +905,7 @@ function adminPage(){
 }
 
 // Import Sisal: OCR nel browser, revisione obbligatoria, scrittura solo dopo conferma.
-let importRows=[],importBusy=false,importImageName='',importStep='review';
+let importRows=[],importBusy=false,importImageName='',importStep='review',importSourceURL='';
 function screenshotImportPanel(){
  const next=Math.max(1,...allWeeks())+1;
  const playerOptions=players().map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('');
@@ -890,12 +916,16 @@ function screenshotImportPanel(){
  <label>Pagante<select id="imPayer" class="select"><option value="">Da indicare</option>${playerOptions}</select></label>
  <label>Puntata totale (€)<input id="imStake" type="number" min="0" step="0.01" value="5"></label>
  <label>Vincita potenziale, bonus inclusi (€)<input id="imPotential" inputmode="decimal" placeholder="Totale riportato nella schedina"></label>
+ <label>Quota totale dichiarata (solo confronto)<input id="imDeclaredOdds" inputmode="decimal" placeholder="Quota riportata nello screenshot"></label>
+ <label>Data giocata (solo riferimento)<input id="imTicketDate" placeholder="gg/mm/aaaa"></label>
  <label>Di cui bonus, calcolato (€)<input id="imBonus" readonly placeholder="Verifica prima le 7 quote"></label>
  <label><input id="imPotentialReviewed" type="checkbox"> Ho verificato vincita potenziale e bonus (vuoto solo se non disponibile).</label>
  <label>Screenshot della schedina<input id="imFile" type="file" accept="image/png,image/jpeg,image/webp,image/*" class="import-input"></label>
  </div>
  <div class="import-actions"><button class="btn primary" type="button" id="imRead">🔎 Leggi lo screenshot</button><button class="btn" type="button" id="imAdd">＋ Aggiungi riga manualmente</button></div>
  <div id="imMessage" class="import-busy" role="status">La lettura è automatica ma può commettere errori: verifica sempre i dati prima di confermare. L'immagine non viene salvata online.</div>
+ <details id="imSource" hidden><summary>Confronta con lo screenshot originale</summary><img id="imSourceImage" class="import-source" alt="Screenshot originale della schedina"></details>
+ <div id="imTotalsInfo" class="import-tip" aria-live="polite"></div>
  <div id="imPreview"></div>
  </section>`;
 }
@@ -906,9 +936,11 @@ function loadOCR(){return new Promise((resolve,reject)=>{
  const script=document.createElement('script');script.dataset.ocr='1';script.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';script.onload=resolve;script.onerror=()=>reject(new Error('Impossibile caricare il lettore OCR. Controlla la rete.'));document.head.appendChild(script);
  })}
 function extractScreenshotPicks(raw){return ScreenshotImport.extract(raw)}
+function sizeImportTextareas(){document.querySelectorAll('[name=imPick]').forEach(el=>{if(!el.offsetParent)return;el.style.height='auto';el.style.height=Math.max(66,el.scrollHeight+2)+'px'})}
+window.addEventListener('resize',sizeImportTextareas);
 function renderImportPreview(){
  const target=$('#imPreview');if(!target)return;
- if(!importRows.length){target.innerHTML='';return}
+ if(!importRows.length){target.innerHTML='';if($('#imTotalsInfo'))$('#imTotalsInfo').textContent='';if($('#imBonus'))$('#imBonus').value='';return}
  const count=players().length;
  const isAssign=importStep==='assign';
  const opts='<option value="">Assegna giocatore…</option>'+players().map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('');
@@ -916,12 +948,28 @@ function renderImportPreview(){
   ?`<strong>Passaggio 2 di 2 · Assegna i giocatori.</strong> Uno per pronostico, senza duplicati. ${importRows.length}/${count} selezioni.`
   :`<strong>Passaggio 1 di 2 · Controlla i dati riconosciuti.</strong> Correggi partita, pronostico e quota. Servono esattamente ${count} selezioni (ora ${importRows.length}).`;
  target.innerHTML=`<div class="notice" style="margin:12px 0">${msg} L'OCR può commettere errori: nessun dato viene salvato prima della conferma.</div>
- <div class="table-wrap"><table class="import-table"><thead><tr><th>#</th>${isAssign?'<th>Giocatore</th>':''}<th>Partita</th><th>Pronostico</th><th>Quota</th><th>Revisione</th>${isAssign?'':'<th></th>'}</tr></thead><tbody>${importRows.map((r,i)=>`<tr data-im-row="${i}"><td>${i+1}</td>${isAssign?`<td><select name="imPlayer" aria-label="Giocatore per pronostico ${i+1}">${opts}</select></td>`:''}<td><input name="imMatch" aria-label="Partita ${i+1}" value="${esc(r.match)}" required ${isAssign?'readonly':''}></td><td><textarea name="imPick" rows="3" aria-label="Pronostico ${i+1}" required ${isAssign?'readonly':''}>${esc(r.pick)}</textarea></td><td><input name="imOdd" aria-label="Quota ${i+1}" inputmode="decimal" value="${esc(r.odds??'')}" required ${isAssign?'readonly':''}></td><td><label><input type="checkbox" name="imReviewed" ${r.reviewed?'checked':''} ${isAssign?'disabled':''}> Testo e quota verificati</label><div class="mini">${esc((r.warnings||['Verifica partita, testo completo e quota.']).join(' '))}</div>${r.raw?`<details><summary>Testo OCR originale</summary><pre style="white-space:pre-wrap">${esc(r.raw)}</pre></details>`:''}</td>${isAssign?'':`<td><button class="icon-btn" type="button" data-im-remove="${i}" title="Rimuovi">✕</button></td>`}</tr>`).join('')}</tbody></table></div>
+ <div class="import-review-heading"><h3>${isAssign?'Riepilogo prima della conferma':'Pronostici riconosciuti'}</h3><span class="pill">${isAssign?'IN ATTESA':'MODIFICABILI'}</span></div>
+ <table class="import-review-table"><thead><tr><th class="im-col-num">#</th>${isAssign?'<th class="im-col-player">Giocatore</th>':''}<th class="im-col-match">Partita</th><th>Pronostico</th><th class="im-col-odds">Quota</th><th class="im-col-review">Verifica</th><th class="im-col-actions">Azioni</th></tr></thead><tbody>
+ ${importRows.map((r,i)=>`<tr class="import-entry ${r.reviewed?'is-reviewed':''}" data-im-row="${i}">
+ <td class="im-cell-num">${i+1}</td>
+ ${isAssign?`<td class="im-cell-player" data-label="Giocatore"><select name="imPlayer" aria-label="Giocatore per pronostico ${i+1}">${opts}</select></td>`:''}
+ <td class="im-cell-match" data-label="Partita"><span class="im-display">${esc(r.match)||'Da completare'}</span><input name="imMatch" aria-label="Partita ${i+1}" value="${esc(r.match)}" required ${isAssign?'readonly':''}></td>
+ <td class="im-cell-pick" data-label="Pronostico"><span class="im-display">${esc(r.pick)||'Da completare'}</span><textarea name="imPick" rows="2" aria-label="Pronostico ${i+1}" required ${isAssign?'readonly':''}>${esc(r.pick)}</textarea>
+ <details class="im-review-details"><summary>Dettagli OCR${(r.warnings||[]).some(w=>/Glifo|discordanti|illeggibile/.test(w))?' · da controllare':''}</summary><p>${esc((r.warnings||['Verifica partita, testo completo e quota.']).join(' '))}</p>${r.raw?`<pre>${esc(r.raw)}</pre>`:''}</details></td>
+ <td class="im-cell-odds" data-label="Quota"><span class="im-display im-odds">${ScreenshotImport.decimal(r.odds)===null?'<span class="im-alert">Da inserire</span>':Number(String(r.odds).replace(',','.')).toFixed(2).replace('.',',')}</span><input name="imOdd" aria-label="Quota ${i+1}" inputmode="decimal" value="${esc(r.odds??'')}" required ${isAssign?'readonly':''}></td>
+ <td class="im-cell-review" data-label="Verifica"><label class="im-review-check"><input type="checkbox" name="imReviewed" ${r.reviewed?'checked':''} ${isAssign?'disabled':''}><span>${r.reviewed?'Verificata':'Da verificare'}</span></label>${isAssign?'<span class="im-pending">IN ATTESA</span>':''}</td>
+ <td class="im-cell-actions" data-label="Azioni"><div class="im-row-actions">${isAssign?'<span class="mini">Confermata</span>':`<button class="icon-btn" type="button" data-im-edit="${i}" aria-label="Modifica pronostico ${i+1}" title="Modifica">✎</button><button class="icon-btn" type="button" data-im-remove="${i}" aria-label="Rimuovi pronostico ${i+1}" title="Rimuovi">×</button>`}</div></td>
+ </tr>`).join('')}</tbody></table>
  <div class="import-actions">${isAssign?`<button type="button" class="btn" id="imBack">← Correggi i pronostici</button><button type="button" class="btn primary" id="imSave">✓ Conferma e salva i ${count} pronostici</button>`:`<button type="button" class="btn primary" id="imNext">Continua · Assegna giocatori →</button>`}<button type="button" class="btn" id="imClear">Annulla importazione</button></div>`;
- target.querySelectorAll('[data-im-row]').forEach((row,i)=>{const sel=row.querySelector('[name=imPlayer]');row.querySelectorAll('[name=imMatch],[name=imPick],[name=imOdd]').forEach(input=>input.oninput=()=>{importRows[i].reviewed=false;row.querySelector('[name=imReviewed]').checked=false;$('#imPotentialReviewed').checked=false;updateImportBonus();});row.querySelector('[name=imReviewed]').onchange=updateImportBonus;if(sel){sel.value=importRows[i].player||'';sel.onchange=()=>{syncImportRows();updateAvailableImportPlayers()}}});
+ target.querySelectorAll('[data-im-row]').forEach((row,i)=>{const sel=row.querySelector('[name=imPlayer]');row.querySelectorAll('[name=imMatch],[name=imPick],[name=imOdd]').forEach(input=>input.oninput=()=>{importRows[i].reviewed=false;row.classList.remove('is-reviewed');row.querySelector('.im-review-check span').textContent='Da verificare';sizeImportTextareas();row.querySelector('[name=imReviewed]').checked=false;$('#imPotentialReviewed').checked=false;updateImportBonus();});row.querySelector('[name=imReviewed]').onchange=()=>{row.classList.toggle('is-reviewed',row.querySelector('[name=imReviewed]').checked);row.querySelector('.im-review-check span').textContent=row.querySelector('[name=imReviewed]').checked?'Verificata':'Da verificare';updateImportBonus()};if(sel){sel.value=importRows[i].player||'';sel.onchange=()=>{syncImportRows();updateAvailableImportPlayers()}}});
+ target.querySelectorAll('[data-im-edit]').forEach(button=>button.onclick=()=>{
+  const row=button.closest('[data-im-row]');
+  if(row.classList.contains('is-editing')){syncImportRows();renderImportPreview();document.querySelector(`[data-im-edit="${button.dataset.imEdit}"]`)?.focus()}
+  else{row.classList.add('is-editing');button.textContent='✓';button.setAttribute('aria-label','Termina modifica pronostico '+(Number(button.dataset.imEdit)+1));sizeImportTextareas();row.querySelector('[name=imMatch]').focus()}
+ });
  target.querySelectorAll('[data-im-remove]').forEach(b=>b.onclick=()=>{syncImportRows();importRows.splice(Number(b.dataset.imRemove),1);$('#imPotentialReviewed').checked=false;renderImportPreview()});
- $('#imClear').onclick=()=>{importRows=[];importStep='review';$('#imPotential').value='';$('#imBonus').value='';$('#imPotentialReviewed').checked=false;renderImportPreview();imMessage('Importazione annullata. Nessun dato salvato.')};
- enhanceSelects(target);updateImportBonus();
+ $('#imClear').onclick=()=>{importRows=[];importStep='review';if(importSourceURL)URL.revokeObjectURL(importSourceURL);importSourceURL='';$('#imSourceImage').removeAttribute('src');$('#imSource').hidden=true;$('#imDeclaredOdds').value='';$('#imTicketDate').value='';$('#imPotential').value='';$('#imBonus').value='';$('#imPotentialReviewed').checked=false;renderImportPreview();imMessage('Importazione annullata. Nessun dato salvato.')};
+ enhanceSelects(target);sizeImportTextareas();updateImportBonus();
  if(isAssign){$('#imBack').onclick=()=>{syncImportRows();importStep='review';renderImportPreview()};$('#imSave').onclick=saveImportedPicks;updateAvailableImportPlayers()}
  else $('#imNext').onclick=()=>{
   syncImportRows();
@@ -950,14 +998,25 @@ async function readScreenshot(){
  try{
   await loadOCR();
   worker=await window.Tesseract.createWorker('ita+eng',1,{logger:m=>{if(m.status==='recognizing text')imMessage('Lettura screenshot: '+Math.round((m.progress||0)*100)+'%')}});
-  const {data}=await worker.recognize(file);
-  const ticket=ScreenshotImport.ticket(data.text||'');
+  if(importSourceURL)URL.revokeObjectURL(importSourceURL);
+  importSourceURL=URL.createObjectURL(file);
+  importRows=[];renderImportPreview();
+  ['#imStake','#imPotential','#imBonus','#imDeclaredOdds','#imTicketDate'].forEach(id=>$(id).value='');$('#imPotentialReviewed').checked=false;
+  const source=$('#imSourceImage');source.src=importSourceURL;await source.decode();$('#imSource').hidden=false;
+  const crop=async (rect,kind)=>{
+   const canvas=document.createElement('canvas');canvas.width=rect.width*3;canvas.height=rect.height*3;
+   const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=kind!=='odds';ctx.imageSmoothingQuality='high';ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);
+   ctx.drawImage(source,rect.left,rect.top,rect.width,rect.height,0,0,canvas.width,canvas.height);
+   return canvas;
+  };
+  const ticket=await ScreenshotLayout.recognize(worker,file,crop,(i,n)=>imMessage(`Rilettura separata di mercato e quota: ${i}/${n}`));
+  $('#imStake').value=ticket.stake??'';$('#imDeclaredOdds').value=ticket.declaredOdds??'';$('#imTicketDate').value=ticket.date??'';
   importRows=ticket.rows;$('#imPotential').value=ticket.potentialWin??'';$('#imBonus').value='';$('#imPotentialReviewed').checked=false;importImageName=file.name;importStep='review';
   if(!importRows.length){importRows=[{player:'',match:'',pick:'',odds:''}];imMessage('Non ho riconosciuto le selezioni. Puoi compilarle manualmente qui sotto.',true)}
-  else imMessage(`Lettura completata: ${importRows.length} righe individuate. Verifica e correggi tutto prima del salvataggio.`);
+  else imMessage(`Lettura completata (${ticket.method==='layout'?'per blocchi':'testo, layout non riconosciuto'}): ${importRows.length} righe individuate. Verifica e correggi tutto prima del salvataggio.`);
   renderImportPreview();
  }catch(err){imMessage('Errore lettura: '+shortErr(err)+'. Puoi comunque aggiungere le righe manualmente.',true)}
- finally{if(worker)await worker.terminate();importBusy=false;if($('#imRead'))$('#imRead').disabled=false}
+ finally{try{if(worker)await worker.terminate()}finally{importBusy=false;if($('#imRead'))$('#imRead').disabled=false}}
 }
 async function saveImportedPicks(){
  if(importBusy)return;syncImportRows();
@@ -974,7 +1033,7 @@ async function saveImportedPicks(){
  const b=importRows.map(r=>({...r,odds:ScreenshotImport.decimal(r.odds)}));
  if(b.some(r=>!r.player||!r.match||!r.pick||!Number.isFinite(r.odds)||r.odds<=1||r.odds>1000))return imMessage('Completa giocatore, partita, pronostico e quota valida per ogni riga.',true);
  if(new Set(b.map(r=>r.player)).size!==players().length||b.some(r=>!players().includes(r.player)))return imMessage('Ogni giocatore deve avere esattamente un pronostico.',true);
- if(!payer||!Number.isFinite(stake)||stake<0||(potentialWin!==null&&bonus===null))return imMessage('Seleziona il pagante e controlla la puntata.',true);
+ if(!payer||!$('#imStake')?.value.trim()||!Number.isFinite(stake)||stake<0||(potentialWin!==null&&bonus===null))return imMessage('Seleziona il pagante e controlla la puntata.',true);
  const existing=db.bets.filter(x=>Number(x.week)===week);
  const duplicates=b.filter(r=>existing.some(x=>x.player===r.player||x.match.toLowerCase()===r.match.toLowerCase()&&x.pick.toLowerCase()===r.pick.toLowerCase()));
  if(existing.length)return imMessage(`La giornata ${week} contiene già ${existing.length} pronostici. Per evitare doppioni, scegli una giornata vuota oppure modifica quelli esistenti dall'Admin.`,true);
@@ -994,15 +1053,19 @@ function updateImportBonus(){
  const field=$('#imBonus');if(!field)return;
  const rows=[...document.querySelectorAll('[data-im-row]')];
  const reviewed=rows.length===7&&rows.every(r=>r.querySelector('[name=imReviewed]').checked);
+ const observed=rows.map(r=>ScreenshotImport.decimal(r.querySelector('[name=imOdd]').value));
+ const product=observed.length===7&&observed.every(n=>n!==null)?observed.reduce((a,b)=>a*b,1):null;
+ const declared=ScreenshotImport.money($('#imDeclaredOdds')?.value);
+ const info=$('#imTotalsInfo');if(info)info.textContent=product===null?'':`Prodotto delle 7 quote: ${product.toFixed(2)}. ${declared===null?'':`Quota totale dichiarata: ${declared.toFixed(2)}. `}${declared!==null&&Math.abs(product-declared)>.01?'I due valori differiscono: verifica eventuali bonus sullo screenshot. Nessuna quota viene adattata al totale.':''}`;
  const value=reviewed?ScreenshotImport.bonus($('#imPotential')?.value,$('#imStake')?.value,rows.map(r=>r.querySelector('[name=imOdd]').value)):null;
  field.value=value===null?'':value.toFixed(2);
  field.setAttribute('aria-invalid',String(value!==null&&value<0));
  field.title=value!==null&&value<0?'Totale inferiore al calcolo senza bonus: verifica i dati':'Vincita potenziale meno puntata × prodotto delle 7 quote';
 }
 function bindScreenshotImport(){
- ['#imPotential','#imStake'].forEach(id=>{if($(id))$(id).oninput=()=>{$('#imPotentialReviewed').checked=false;updateImportBonus()}});
+ ['#imPotential','#imStake','#imDeclaredOdds','#imTicketDate'].forEach(id=>{if($(id))$(id).oninput=()=>{$('#imPotentialReviewed').checked=false;updateImportBonus()}});
  if($('#imRead'))$('#imRead').onclick=readScreenshot;
- if($('#imAdd'))$('#imAdd').onclick=()=>{syncImportRows();if(importRows.length>=players().length)return imMessage(`Puoi inserire al massimo ${players().length} selezioni.`,true);importStep='review';importRows.push({player:'',match:'',pick:'',odds:''});renderImportPreview()};
+ if($('#imAdd'))$('#imAdd').onclick=()=>{if(importBusy)return;syncImportRows();if(importRows.length>=players().length)return imMessage(`Puoi inserire al massimo ${players().length} selezioni.`,true);importStep='review';importRows.push({player:'',match:'',pick:'',odds:''});renderImportPreview()};
 }
 
 function adminMessage(m,error=false){const el=$('#adminMsg');if(el){el.textContent=m;el.style.color=error?'var(--red)':'var(--green)'}}

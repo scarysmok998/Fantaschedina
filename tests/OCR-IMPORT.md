@@ -1,58 +1,57 @@
-# Importazione schedine: correzione OCR e bonus
+# Importazione Sisal: lettura per coordinate e anteprima modificabile
 
-Base: main, commit 566955a (correzione precedente dei menu mobile preservata).
+Base verificata all'inizio del lavoro: `origin/main` = `77a11d42c6ede6e2ba91a9c138b0432fdb7df691`. La copia precedente era pulita; le modifiche già presenti, incluse dropdown mobile, vincita potenziale e bonus, sono conservate. Nessuna migrazione nuova e nessuna scrittura al database di produzione.
 
-## Pipeline effettiva
+## Diagnosi e correzione
 
-L'importazione NON chiama Gemini: `readScreenshot` usa Tesseract 5, lingue ita+eng, nel browser. `api/ai.js` serve la chat statistica. Non è stato introdotto un nuovo endpoint AI né un invio remoto degli screenshot.
+L'importazione usa Tesseract.js 5 nel browser. Gemini serve la chat statistica: non partecipa all'OCR e non esiste un prompt di estrazione da correggere. Gli screenshot restano nel browser.
 
-Il nuovo modulo `js/screenshot-import.js` converte il testo OCR in un contratto strutturato:
+La lettura dell'intera immagine originale riproduce `2105!`, `425`, rumore delle icone e parole isolate spurie accanto ai mercati. Il solo testo perde la colonna destra. `js/screenshot-layout.js` usa invece il TSV di Tesseract: riconosce intestazioni delle partite con data/ora, individua la colonna delle quote da più decimali osservati a destra e legge separatamente i ritagli di mercato e quota. Non contiene nomi delle squadre, quote attese o coordinate specifiche della fixture.
 
-- `rows[]`: `match`, `pick` (mercato e selezione completi), `odds` (numero decimale oppure null), `raw`, `warnings`, `reviewed`;
-- `potentialWin`: vincita potenziale dichiarata dal bookmaker, bonus già compresi, oppure null.
+I mercati multilinea non sono abbreviati. Le soglie nel ritaglio del mercato rimangono testo. La quota del ritaglio deve essere un decimale integro e leggibile: niente ricostruzione di cifre, niente whitelist numerica che trasformi lettere in numeri. Se prima e seconda lettura producono quote valide discordanti il risultato resta nullo. Valori mancanti e illeggibili richiedono inserimento manuale. I layout senza sufficienti riferimenti usano il parser testuale conservativo e segnalano la necessità di controllo.
 
-Questo è il contratto della pipeline locale: non c'è un prompt Gemini di importazione da cambiare. Un'eventuale futura integrazione AI dovrà produrre questi campi separatamente e passare comunque attraverso normalizzazione e revisione.
+Nel caso reale il glifo `|` tra parole in `ENTRAMBI | TEMPI` è normalizzato in `I`, con avviso e testo originale conservato. È una normalizzazione esplicita, non una lettura nativa perfetta di tutti i caratteri.
 
-Il parser ammette i detriti visibili nello screenshot dopo le quote (`©`, `(È;`, `(5`, valuta). Estrae quote soltanto con un contesto compatibile; non scambia Over 2.50, corner 8.50, 1X2, punteggi e handicap per quote. Non trasforma `2105!`, `425` o lettere OCR in decimali presunti. Conserva continuazioni del mercato anche dopo una riga con quota, senza limiti arbitrari alla lunghezza del pronostico. Unicode e spazi sono normalizzati; nomi, lettere ambigue e parole mancanti richiedono correzione umana.
+Puntata, quota totale dichiarata, vincita potenziale e data sono separati dalle selezioni mediante posizione delle etichette e dei valori. Il riepilogo mostra separatamente prodotto delle quote e totale dichiarato; non modifica quote per far tornare i conti. Per questo screenshot il prodotto è 330,2362040625 e il totale dichiarato 360,86: viene richiesta la verifica di eventuali bonus. Rimane la formula preesistente del bonus come differenza tra vincita dichiarata e ritorno senza bonus, con revisione obbligatoria.
 
-L'anteprima ha campi separati, pronostico multilinea, testo OCR originale e conferma per ogni riga. Ogni modifica revoca la conferma. La navigazione e il salvataggio verificano nuovamente dati e revisione. Restano obbligatori sette giocatori distinti, una selezione ciascuno, giornata senza pronostici già inseriti e stato iniziale A.
+Data e quota totale dichiarata sono riferimenti nell'anteprima e non vengono aggiunte al database. `potential_win` e `bonus_amount` usano le colonne già esistenti. Non rieseguire vecchie migrazioni per questa modifica.
 
-## Vincita potenziale e «di cui bonus»
+## Anteprima richiesta dall'utente
 
-Si legge la vincita potenziale da una voce esplicita, sulla stessa riga o su quella seguente, gestendo importi IT/EN come `1.234,56 €` e `1,234.56 EUR`. Valori discordanti o ambigui rimangono vuoti. Il campo è modificabile; richiede conferma anche quando non disponibile.
+La versione finale mostra una tabella simile a «Pronostici e risultati»: partita, mercato completo, quota con due decimali, controllo di revisione e pulsanti matita/rimozione. I campi sono nascosti fino alla matita; il segno di spunta chiude la modifica e aggiorna il testo. Ogni cambiamento revoca la revisione della riga e del totale. I dettagli OCR sono espandibili.
 
-Il bonus NON deve essere esplicitato dal bookmaker:
+Sul desktop i dati sono allineati in colonne; sotto 1100 px le righe diventano blocchi verticali senza tabella a larghezza minima e senza scorrimento interno. Il secondo passaggio aggiunge giocatori e stato «IN ATTESA», prima del salvataggio. Restano i controlli su sette righe, sette giocatori distinti, valori validi, totale verificato e giornata vuota. Le operazioni Supabase rimangono quelle precedenti; non sono una transazione atomica.
 
-`bonus = vincita potenziale - arrotonda(puntata × quota1 × … × quota7, 2)`
+## Prove eseguite e limiti
 
-Si usano le sette quote originali, prima di eventuali annullamenti. L'importo senza bonus viene arrotondato una sola volta ai centesimi; la differenza viene calcolata in centesimi. Un risultato negativo blocca l'importazione e richiede correzione. Dati incompleti non generano un bonus. Il bonus è già incluso nella vincita potenziale e non viene aggiunto al totale.
+- `tests/screenshot-import.cjs`: PASS, parser originale, soglie/rumore/conflitti, importi e bonus, compilazione dello script finale dell'app.
+- `tests/screenshot-layout.cjs`: PASS, TSV realmente ottenuto dall'immagine; riconoscimento della geometria e riepilogo; test simulati separati per quote illeggibili/discordanti e conservazione delle soglie.
+- `tests/ocr-real.cjs`: PASS sui pixel di `tests/fixtures/sisal-original.jpeg`, Tesseract 5.1.1 con core corrispondente e lingue ita+eng. Confronta esattamente le sette righe e i quattro campi di `sisal-expected.json`. Eseguito nuovamente dopo le modifiche finali. Il ridimensionamento di questo test usa Sharp.
+- `tests/ocr-browser.cjs`: PASS in Chrome e WebKit sulla pipeline browser reale, caricamento dell'immagine e ritagli canvas. Verificati sette mercati, sette quote, tutti i campi riepilogativi e geometria a 390 e 1440 px. La lettura inizialmente sbagliava 2.50 con interpolazione: per le quote l'ingrandimento ora evita l'interpolazione. Queste esecuzioni precedono la richiesta finale di una tabella con matita.
+- `tests/import-ui.cjs`: PASS in Chrome prima dell'ultima revisione grafica: revisione obbligatoria, revoca dopo modifica, quote invalide, bonus negativo, assegnazioni duplicate, payload finale con database simulato.
+- I due test browser sono aggiornati per la nuova tabella, ma NON sono stati rieseguiti con successo sulla grafica finale: il processo Chrome è bloccato dal sandbox e il browser integrato rifiuta l'URL del file locale. Non si attribuisce alle esecuzioni precedenti una verifica della grafica successiva.
+- `git diff --check`: PASS. Nessun accesso Admin autenticato, scrittura Supabase reale o test su telefono fisico.
 
-La vincita potenziale e il bonus vengono salvati in `rounds.potential_win` e `rounds.bonus_amount`, recuperati dal caricamento, mostrati in LIVE/archivio e trasmessi anche al contesto della chat. Per le giornate storiche senza totale dichiarato, LIVE conserva la stima precedente, ora indicata come senza bonus. Il totale dichiarato non rappresenta una vincita effettivamente liquidata; in caso di annullamenti va rivalutato.
+La fixture è una sola immagine Sisal: il risultato non garantisce ogni formato, risoluzione o ritaglio. Le distanze tra blocchi e la colonna destra richiedono un layout compatibile; la revisione umana rimane necessaria.
 
-La modifica della giornata ricalcola il bonus con le quote disponibili. A ogni caricamento il bonus visualizzato viene ricalcolato dalle quote originali correnti: una correzione successiva di una quota non lascia un importo visualizzato obsoleto. Una differenza negativa viene indicata come «da verificare». Il campo bonus_amount conserva la fotografia dell’ultimo salvataggio della giornata; il totale dichiarato resta la fonte del calcolo.
+## Riproduzione
 
-## Database e pubblicazione
+Servono Node.js, Playwright con Chrome/WebKit, Tesseract.js 5.1.1/core 5.1.1, lingua ita+eng e Sharp. Nessuna dipendenza di produzione è aggiunta: l'app continua a caricare Tesseract dal CDN già usato.
 
-Applicare `migrations/20261114_potential_win.sql` in Supabase PRIMA di pubblicare i file. La migrazione aggiunge due colonne nullable con vincoli; non modifica gli importi storici. Distribuire insieme `index.html`, `js/screenshot-import.js` e `api/ai.js`.
+```sh
+node tests/screenshot-import.cjs
+node tests/screenshot-layout.cjs
+TESSERACT_MODULE=/percorso/tesseract5 CORE_PATH=/percorso/core5/tesseract-core-simd-lstm.wasm.js LANG_PATH=/percorso/lingue node tests/ocr-real.cjs
+CHROME_PATH=/percorso/chrome node tests/import-ui.cjs
+OCR_ASSETS=/percorso/assets CHROME_PATH=/percorso/chrome ARTIFACT_DIR=/percorso/risultati node tests/ocr-browser.cjs
+```
 
-La migrazione non è stata eseguita su produzione. La verifica REST in sola lettura restituisce `42703: column rounds.potential_win does not exist`. Pubblicazione bloccata fino alla migrazione. Il push di prova non trova le credenziali HTTPS GitHub del terminale.
+`OCR_ASSETS` contiene `tesseract5/dist`, `core5` e i file `ita.traineddata.gz`, `eng.traineddata.gz`. Il test browser serve queste risorse solo su localhost; non invia l'immagine a servizi remoti. Per WebKit impostare `BROWSER=webkit` e il percorso dei browser Playwright, omettendo `CHROME_PATH`.
 
-## Verifiche eseguite
+## Consegna
 
-- `node tests/screenshot-import.cjs`: passato. Trascrizione delle sette righe visibili nell'anteprima Admin, quote 1.80/1.57/1.85/2.90, rumore OCR, decimali IT/EN, soglie e punteggi, righe complesse e multilinea, conflitti, quote mancanti, sintassi JavaScript reale, importi monetari e formula del bonus (zero, positivo, negativo, dati incompleti).
-- `node tests/import-ui.cjs`: passato in Chrome desktop con viewport mobile 390×844 e database simulato. Esegue le funzioni reali dell'anteprima e del salvataggio: modifica revoca revisione, campi invalidi bloccano, controllo totale, bonus negativo blocca, sette giocatori distinti, duplicati respinti, payload numerico e stato A, totale e bonus conservati, dicitura in archivio.
-- `git diff --check`: passato.
+Patch binaria rispetto a main e archivio completo del repository senza `.git`, più anteprima HTML autonoma con dati OCR reali e salvataggio simulato. Nessun push o deploy completato; il lavoro non è online. Il tentativo di verifica push senza scrittura si è fermato sulla risoluzione di rete, quindi non dimostra la disponibilità di credenziali GitHub.
 
-Per il test UI occorrono Playwright e Chromium; `CHROME_PATH` permette di usare Chrome installato. `NODE_PATH` può puntare al runtime condiviso. Il test è stato eseguito con successo anche in WebKit tramite `BROWSER=webkit`. Anche `tests/dropdown.cjs` passa in Chrome.
+## Verifica finale nel repository GitHub locale
 
-## Limiti verificabili
-
-Il riferimento contiene lo screenshot dell'anteprima Admin con il difetto, non la schedina originale leggibile per intero. Alcuni campi sono tagliati dall'input: non è possibile ricostruirne con certezza la parte nascosta. Le fixture riproducono i frammenti visibili; i completamenti multilinea sono casi sintetici, non una ricostruzione certificata dell'originale. Il totale vincita non è visibile in quello screenshot: i test monetari usano esempi sintetici.
-
-Non è stato eseguito un benchmark del riconoscimento Tesseract sui pixel della schedina originale, né un accesso Admin autenticato, una scrittura Supabase reale o un test su telefono fisico. I test UI simulano Supabase e i menu dei giocatori; il comportamento dei menu non è stato modificato.
-
-Il salvataggio conserva il flusso esistente in due operazioni (giornata, poi pronostici), non una transazione atomica: se l'inserimento dei pronostici fallisce può restare una giornata vuota; un nuovo tentativo ne aggiorna i metadati. Le protezioni multiutente/concorrenza restano affidate ai vincoli/RLS del database esistente, non verificati in questa sessione.
-
-## Completamento locale del 14 novembre 2026
-
-Confronto dopo fetch: main e origin/main coincidono con 566955a. Nessuna modifica grafica estranea all’importazione e alla visualizzazione dei totali. Ogni modifica a partita, pronostico o quota revoca anche la conferma del totale; rimuovere una riga la revoca e annullare l’importazione pulisce totale e bonus. Navigazione e salvataggio richiedono esattamente sette giocatori registrati. Migrazione racchiusa in BEGIN/COMMIT per applicare entrambe le colonne atomicamente. Revisione SQL statica completata; esecuzione e vincoli su PostgreSQL reale ancora da verificare con accesso amministrativo. Test parser, sintassi, UI Chrome/WebKit e regressione dropdown Chrome superati.
+La patch è stata applicata su main 77a11d4 in /Users/Leo/Documents/GitHub/Fantaschedina. Superati i test screenshot-import, screenshot-layout e import-ui (Chrome). Rieseguito ocr-browser sulla grafica finale sia in Chrome sia in WebKit: sette mercati e quote esatti, quattro campi riepilogativi, nessun errore di pagina, nessun overflow a 390 e 1440 px. Le colonne potential_win e bonus_amount sono ora presenti: verifica REST in sola lettura con limit=0 riuscita (HTTP 200). Non è stata eseguita alcuna migrazione né scrittura di dati in questa verifica.
