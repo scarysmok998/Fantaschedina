@@ -41,6 +41,9 @@
 .import-busy{color:#c2ed9c;font-size:12px;line-height:1.7;white-space:pre-line}
 .import-tip{font-size:12px;color:#a6b6ab;line-height:1.65}
 
+button.live-result{border:0;position:relative}
+button.live-result::after{content:"";position:absolute;inset:-9px 0}
+button.live-result:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
 /* Schedina LIVE */
 .live-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
 .live-kicker{font-weight:800;color:var(--lime);font-size:11px;letter-spacing:2px;text-transform:uppercase}
@@ -602,7 +605,7 @@ function livePage(){
  const rounds=allWeeks().map(weekData).filter(x=>x.b.length);
  if(!rounds.length)return `<section class="card"><div class="live-empty">Nessuna schedina ancora disponibile. I pronostici compariranno qui appena salvati dall’Admin.</div></section>`;
  // Most recent not fully settled; otherwise latest available round.
- const selected=[...rounds].reverse().find(x=>x.b.some(b=>b.result==='A'))||rounds.at(-1);
+ const selected=rounds.find(x=>x.w===liveEditingWeek)||[...rounds].reverse().find(x=>x.b.some(b=>b.result==='A'))||rounds.at(-1);
  const settled=selected.b.filter(b=>b.result!=='A');
  const won=selected.b.filter(b=>b.result==='V').length,lost=selected.b.filter(b=>b.result==='P').length,voided=selected.b.filter(b=>b.result==='N').length,pending=selected.b.filter(b=>b.result==='A').length;
  const statusText=pending?(lost?'IN CORSO · GIÀ PERSA':'IN CORSO'):(lost?'PERSA':'VINTA');
@@ -611,7 +614,7 @@ function livePage(){
  const potential=recordedPotential??selected.stake*effectiveOdds;
  const top=`<div class="live-head"><div><div class="live-kicker">● Aggiornamento schedina</div><div class="live-num">Giornata ${selected.w}</div><div class="mini">${selected.b.length} selezioni · Pagante: ${esc(selected.payer)}</div></div><span class="pill" style="font-size:12px">${esc(statusText)}</span></div>`;
  const statusCount=`<div class="live-progress" aria-label="${won} vinti, ${lost} persi, ${voided} annullati, ${pending} in attesa">${won?`<span class="won" style="width:${100*won/selected.b.length}%"></span>`:''}${lost?`<span class="lost" style="width:${100*lost/selected.b.length}%"></span>`:''}${voided?`<span class="void" style="width:${100*voided/selected.b.length}%"></span>`:''}</div><div class="row" style="flex-wrap:wrap;gap:15px;font-size:12px"><span class="pos">${uiIcon('check-circle')} ${won} vinte</span><span class="neg">${uiIcon('x-circle')} ${lost} perse</span><span class="muted">${uiIcon('clock')} ${pending} in attesa</span>${voided?`<span class="muted">${uiIcon('undo')} ${voided} annullate</span>`:''}</div>`;
- const cards=[...selected.b].sort((a,b)=>a.id-b.id).map(b=>`<article class="live-pick ${['V','P','N'].includes(b.result)?b.result:'A'}"><div class="live-icon" aria-hidden="true">${uiIcon(b.result==='V'?'check':b.result==='P'?'close':b.result==='N'?'undo':'clock')}</div><div><div class="live-match"><a class="live-match-link" href="${esc(sofascoreMatchSearch(b.match,b.date))}" target="_blank" rel="noopener noreferrer" aria-label="Apri ${esc(b.match)} su Sofascore (apre una nuova scheda)">${esc(b.match)} <span class="live-match-external" aria-hidden="true">${uiIcon('external-link')}</span></a></div><div class="live-tip">${esc(b.pick)}</div><div class="mini" style="margin-top:7px">${esc(b.player)}${b.date?' · '+esc(b.date):''}</div></div><div class="live-right"><strong>${fmt(b.odds)}</strong>${badge(b.result)}</div></article>`).join('');
+ const cards=[...selected.b].sort((a,b)=>a.id-b.id).map(b=>`<article class="live-pick ${['V','P','N'].includes(b.result)?b.result:'A'}"><div class="live-icon" aria-hidden="true">${uiIcon(b.result==='V'?'check':b.result==='P'?'close':b.result==='N'?'undo':'clock')}</div><div><div class="live-match"><a class="live-match-link" href="${esc(sofascoreMatchSearch(b.match,b.date))}" target="_blank" rel="noopener noreferrer" aria-label="Apri ${esc(b.match)} su Sofascore (apre una nuova scheda)">${esc(b.match)} <span class="live-match-external" aria-hidden="true">${uiIcon('external-link')}</span></a></div><div class="live-tip">${esc(b.pick)}</div><div class="mini" style="margin-top:7px">${esc(b.player)}${b.date?' · '+esc(b.date):''}</div></div><div class="live-right"><strong>${fmt(b.odds)}</strong>${liveResultBadge(b)}</div></article>`).join('');
  return `${top}<div class="grid metrics">${metric('QUOTA TOTALE',fmt(effectiveOdds),'Quota combinata delle selezioni')}${metric('PUNTATA',money(selected.stake),'Importo registrato per la giornata')}${metric('VINCITA POTENZIALE',money(potential),recordedPotential!=null?'Di cui bonus: '+(selected.meta.bonus==null?'non disponibile':selected.meta.bonus<0?'da verificare (totale inferiore al calcolo senza bonus)':money(selected.meta.bonus))+'. Bonus calcolato per differenza. Totale dichiarato; da rivalutare in caso di annullamenti':'Stima senza bonus, solo se tutte le selezioni utili vincono')}${metric('STATO',pending?`${settled.length}/${selected.b.length}`:statusText,pending?'Selezioni già definite':'Schedina conclusa')}</div><section class="card"><div class="section-title"><h2>🎟️ La schedina</h2><span class="pill">${selected.b.length} SELEZIONI</span></div>${statusCount}<div class="live-list">${cards}</div></section>${rounds.length>1?`<div style="margin-top:18px">${btn('Vedi archivio giornate',"navigate('weeks')")}</div>`:''}`;
 }
 function weeksPage(){const ww=allWeeks().map(weekData).reverse();return `<div class="grid two">${ww.map(x=>`<div class="card"><div class="row between"><span class="week-pill">GIORNATA ${x.w}</span>${x.b.length?badge(x.complete?(x.won?'V':'P'):'A'):badge(x.meta.legacyResult||'A')}</div><div class="grid two" style="margin-top:18px">${metric('Quota multipla',x.b.length?fmt(x.total):x.meta.legacyOdds?fmt(x.meta.legacyOdds):'—','')}${metric('Successi',x.b.length?x.valid.filter(b=>b.result==='V').length+'/'+x.b.length:x.meta.legacyHits||'—','')}</div><div class="statline"><span>Pagante</span><b>${esc(x.payer)}</b></div><div class="statline"><span>Puntata (€)</span><b>${fmt(x.stake)}</b></div>${x.meta.potentialWin!=null?`<div class="statline"><span>Vincita potenziale (bonus inclusi)</span><b>${money(x.meta.potentialWin)}</b></div><div class="statline"><span>Di cui bonus</span><b>${x.meta.bonus==null?'Non disponibile':x.meta.bonus<0?'Da verificare':money(x.meta.bonus)}</b></div>`:''}<div class="row between" style="margin-top:16px"><button class="btn" onclick="simWeek=${x.w};navigate('sim')">Simula →</button></div></div>`).join('')}</div>`}function simPage(){let w=allWeeks().filter(x=>db.bets.some(b=>b.week===x));if(!w.includes(simWeek))simWeek=w.at(-1);let all=db.bets.filter(x=>+x.week===+simWeek),arr=all.filter(x=>!simExcluded.includes(x.id)&&x.odds>=minOdd),total=arr.reduce((s,x)=>s*(x.result==='N'?1:x.odds),1),lost=arr.some(x=>x.result==='P'),pending=arr.some(x=>x.result==='A'),status=!arr.length?'NESSUNA SELEZIONE':lost?'PERSA':pending?'IN CORSO':'VINTA';return `<div class="grid split">${section('Il laboratorio WHAT IF',`<div class="filters"><select class="select" id="simWeek">${w.map(x=>`<option value="${x}" ${x===simWeek?'selected':''}>Giornata ${x}</option>`).join('')}</select><select id="minOdd" class="select"><option value="1" ${minOdd===1?'selected':''}>Tutte le quote</option><option value="1.5" ${minOdd===1.5?'selected':''}>Quota ≥ 1,50</option><option value="1.7" ${minOdd===1.7?'selected':''}>Quota ≥ 1,70</option><option value="2" ${minOdd===2?'selected':''}>Quota ≥ 2,00</option></select></div><p class="mini">Clicca su un giocatore per includere o escludere la sua selezione.</p>${all.map(x=>`<div class="pick-row" style="opacity:${simExcluded.includes(x.id)||x.odds<minOdd?.35:1}"><div class="row"><input type="checkbox" aria-label="Includi ${esc(x.player)}" onchange="toggleSim(${x.id})" ${simExcluded.includes(x.id)?'':'checked'}><div><strong>${esc(x.player)}</strong><small>${esc(x.match)} · ${esc(x.pick)}</small></div></div><div class="row">${badge(x.result)}<strong>${fmt(x.odds)}</strong></div></div>`).join('')||'<div class="empty">Nessun pronostico</div>'}`)}${section('Scenario alternativo',`<div class="grid two">${metric('Quota totale',arr.length?fmt(total):'—',arr.length+' selezioni incluse')}${metric('Esito storico',status,'Calcolato sulle selezioni rimaste')}${metric('Vincita con €5',status==='VINTA'?money(5*total):'€ 0,00','Vincita lorda ipotetica')}${metric('Pronostici corretti',arr.filter(x=>x.result==='V').length+'/'+arr.length,'Con esiti noti')}</div>`)}</div>`}function awardsPage(){
@@ -830,7 +833,7 @@ async function refreshPermission(){
  const {data:{session}}=await client.auth.getSession();adminSession=session;
  hasAdminPermission=false;
  if(session){const {data,error}=await client.rpc('is_admin');if(!error)hasAdminPermission=Boolean(data)}
- if(tab==='admin')render();
+ if(tab==='admin'||tab==='live')render();
 }
 
 // Custom dropdowns progressively enhance every native select; native values/events stay intact.
@@ -868,6 +871,48 @@ document.addEventListener('scroll',e=>{
  if(openFsSelect&&!openFsSelect.menu.contains(e.target))positionFsSelect();
 },{capture:true,passive:true});
 
+let liveSaving=false,liveEditingWeek=null;
+function liveResultBadge(b){
+ if(!adminSession||!hasAdminPermission)return badge(b.result);
+ return `<button type="button" class="badge ${b.result==='N'?'A':esc(b.result)} live-result" data-live-result="${esc(b.id)}" aria-label="Modifica esito: ${esc(b.match)}, ${esc(resultLabel(b.result))}" aria-haspopup="listbox" aria-expanded="false" ${liveSaving?'disabled':''}>${esc(resultLabel(b.result))}</button>`;
+}
+function openLiveResult(button){
+ if(!client||!adminSession||!hasAdminPermission||liveSaving)return;
+ if(openFsSelect?.button===button){closeFsSelect();return}
+ closeFsSelect();
+ const b=db.bets.find(x=>String(x.id)===button.dataset.liveResult);if(!b)return;
+ const menu=document.createElement('div');menu.className='fs-select-menu';menu.setAttribute('role','listbox');menu.setAttribute('aria-label','Esito del pronostico');
+ for(const [value,label] of [['V','Vinto'],['P','Perso'],['A','In attesa']]){
+  const option=document.createElement('button');option.type='button';option.className='fs-select-option';option.textContent=label;option.setAttribute('role','option');option.setAttribute('aria-selected',String(b.result===value));
+  option.onclick=()=>{closeFsSelect();button.focus();saveLiveResult(b.id,value,b.result)};menu.appendChild(option);
+ }
+ document.body.appendChild(menu);button.setAttribute('aria-expanded','true');openFsSelect={box:button,button,menu};positionFsSelect();menu.querySelector('[aria-selected="true"]')?.focus();
+ if(!menu.contains(document.activeElement))menu.firstElementChild.focus();
+}
+async function saveLiveResult(id,value,expected){
+ if(liveSaving||!client||!adminSession||!hasAdminPermission||!['V','P','A'].includes(value))return;
+ const b=db.bets.find(x=>x.id===id);if(!b||value===expected)return;
+ const label={V:'Vinto',P:'Perso',A:'In attesa'}[value];
+ if(!confirm(`Confermi l’esito «${label}» per ${b.match} (${b.pick})?`))return;
+ liveSaving=true;document.querySelectorAll('[data-live-result]').forEach(el=>el.disabled=true);
+ try{
+  // Recheck the authenticated permission; the database RLS remains the security boundary.
+  const permission=await client.rpc('is_admin');
+  if(permission.error||permission.data!==true)throw new Error('Permesso Admin non disponibile. Accedi nuovamente.');
+  // Compare-and-set avoids overwriting a result changed by another admin/device.
+  const {data,error}=await client.from('picks').update({result:value}).eq('id',id).eq('result',expected).select('*').single();
+  if(error)throw error;
+  if(!data||data.id!==id||data.result!==value)throw new Error('Salvataggio non confermato dal database.');
+  const current=db.bets.findIndex(x=>x.id===id);
+  if(current>=0)db.bets.splice(current,1,convertPick(data));
+  liveEditingWeek=b.week;
+  notice('');status('● ESITO SALVATO');
+ }catch(e){
+  notice('Esito non confermato: '+shortErr(e)+' Ricarica i dati prima di riprovare.',true);
+ }finally{
+  liveSaving=false;render();
+ }
+}
 const shortErr=e=>String(e?.message||e||'Errore sconosciuto');
 function adminPage(){
  if(!client)return `<div class="card"><h2>Configurazione mancante</h2><p>Compila <code>config.js</code> con Project URL e chiave publishable/anon Supabase, poi pubblica su Vercel.</p></div>`;
@@ -1123,6 +1168,10 @@ async function deleteRound(week){
 function editRound(w){const x=db.weeks.find(r=>r.week===w);if(!x)return;adminArea='rounds';render();const f=$('#roundForm');f.elements.week.value=x.week;f.elements.payer.value=x.payer||'';f.elements.stake.value=x.stake;f.elements.potentialWin.value=x.potentialWin??'';f.elements.bonus.value=x.bonus??'';refreshSelects();f.scrollIntoView({behavior:'smooth',block:'center'})}
 const originalBindPage=bindPage;
 bindPage=function(){originalBindPage();bindScreenshotImport();
+ document.querySelectorAll('[data-live-result]').forEach(button=>{
+  button.onclick=()=>openLiveResult(button);
+  button.onkeydown=e=>{if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();openLiveResult(button)}};
+ });
  document.querySelectorAll('[data-admin-area]').forEach(b=>b.onclick=()=>{if(adminArea===b.dataset.adminArea)return;adminArea=b.dataset.adminArea;render();if(adminArea==='import')renderImportPreview()});
  enhanceSelects(document.querySelector('#content'));
  const f=$('#loginForm');if(f)f.onsubmit=async e=>{e.preventDefault();adminMessage('Accesso in corso…');const d=new FormData(f);const {error}=await client.auth.signInWithPassword({email:String(d.get('email')),password:String(d.get('password'))});if(error)adminMessage(shortErr(error),true);else await refreshPermission()};
